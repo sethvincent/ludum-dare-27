@@ -79,7 +79,7 @@ player.addTo(game);
 player.on('update', function(interval){
   this.input(keyboard.keysDown);
   this.move();
-  this.velocity.x = 0;
+  this.velocity.x *= this.friction;
   this.velocity.y += 1.5;
   this.boundaries();
 });

@@ -201,7 +201,7 @@ player.addTo(game);
 player.on('update', function(interval){
   this.input(keyboard.keysDown);
   this.move();
-  this.velocity.x = 0;
+  this.velocity.x *= this.friction;
   this.velocity.y += 1.5;
   this.boundaries();
 });
@@ -219,7 +219,515 @@ player.on('draw', function(context){
   context.restore();
 });
 
-},{"./player":3,"./camera":1,"./map":4,"crtrdg-keyboard":5,"crtrdg-gameloop":6,"crtrdg-mouse":7}],8:[function(require,module,exports){
+},{"./player":3,"./camera":1,"./map":4,"crtrdg-gameloop":5,"crtrdg-keyboard":6,"crtrdg-mouse":7}],3:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Player;
+inherits(Player, Entity);
+
+function Player(options){
+  this.position = { 
+    x: options.position.x, 
+    y: options.position.y 
+  };
+
+  this.size = {
+    x: options.size.x,
+    y: options.size.y
+  };
+
+  this.velocity = {
+    x: 0,
+    y: 0
+  };
+
+  this.direction = 'right';
+  
+  this.friction = 0.8;
+  this.speed = options.speed;
+  this.color = options.color;
+}
+
+Player.prototype.move = function(){
+  this.position.x += this.velocity.x * this.friction;
+  this.position.y += this.velocity.y * this.friction;
+};
+
+Player.prototype.boundaries = function(){
+  if (this.position.x <= 0){
+    this.position.x = 0;
+  }
+
+  if (this.position.x >= 3000 - this.size.x){
+    this.position.x = 3000 - this.size.x;
+  }
+
+  if (this.position.y <= 0){
+    this.position.y = 0;
+  }
+
+  if (this.position.y >= 320 - this.size.y){
+    this.position.y = 320 - this.size.y;
+    this.jumping = false;
+  }
+};
+
+Player.prototype.input = function(keysdown){
+  if ('A' in keysdown){
+    this.direction = 'left';
+    this.velocity.x = -this.speed;
+  }
+
+  if ('D' in keysdown){
+    this.direction = 'right';
+    this.velocity.x = this.speed;
+  }
+
+  if ('W' in keysdown|| '<space>' in keysdown){
+    if (!this.jumping){
+      this.jumping = true;
+      this.velocity.y = -15;
+    }
+    
+    console.log('wut')
+  }
+
+  if ('S' in keysdown){
+    this.velocity.y = this.speed;
+  }
+};
+},{"inherits":8,"crtrdg-entity":9}],4:[function(require,module,exports){
+randomColor = require('random-color');
+
+module.exports = Map;
+
+function Map(game, width, height){
+  this.game = game;
+  this.width = width;
+  this.height = height;
+  this.image = null;
+}
+
+Map.prototype.generate = function(callback){
+  var ctx = document.createElement('canvas').getContext('2d');
+
+  ctx.canvas.width = this.width;
+  ctx.canvas.height = this.height;
+
+  var rows = parseInt(this.width/16);
+  var columns = parseInt(this.height/16);
+
+  ctx.save();     
+  for (var x = 0, i = 0; i < rows; x+=16, i++) {
+    for (var y = 0, j=0; j < columns; y+=16, j++) { 
+      ctx.beginPath();      
+      ctx.fillStyle = randomColor()                   
+      ctx.rect(x, y, 15, 15);        
+      ctx.fill();
+      ctx.closePath();
+    }
+    
+  }   
+  ctx.restore();  
+  
+  // store the generate map as this image texture
+  this.image = new Image();
+  this.image.src = ctx.canvas.toDataURL("image/png");         
+  
+  // clear context
+  ctx = null;
+}
+
+// draw the map adjusted to camera
+Map.prototype.draw = function(context, xView, yView){         
+  context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
+}
+},{"random-color":10}],8:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],10:[function(require,module,exports){
+module.exports = color;
+
+function num(cap){
+  return Math.floor( Math.random() * cap );
+}
+
+function color(cap){
+  cap || ( cap = 255 );
+  return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
+}
+
+},{}],11:[function(require,module,exports){
+(function(){var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
+  , isOSX = /OS X/.test(ua)
+  , isOpera = /Opera/.test(ua)
+  , maybeFirefox = !/like Gecko/.test(ua) && !isOpera
+
+var i, output = module.exports = {
+  0:  isOSX ? '<menu>' : '<UNK>'
+, 1:  '<mouse 1>'
+, 2:  '<mouse 2>'
+, 3:  '<break>'
+, 4:  '<mouse 3>'
+, 5:  '<mouse 4>'
+, 6:  '<mouse 5>'
+, 8:  '<backspace>'
+, 9:  '<tab>'
+, 12: '<clear>'
+, 13: '<enter>'
+, 16: '<shift>'
+, 17: '<control>'
+, 18: '<alt>'
+, 19: '<pause>'
+, 20: '<caps-lock>'
+, 21: '<ime-hangul>'
+, 23: '<ime-junja>'
+, 24: '<ime-final>'
+, 25: '<ime-kanji>'
+, 27: '<escape>'
+, 28: '<ime-convert>'
+, 29: '<ime-nonconvert>'
+, 30: '<ime-accept>'
+, 31: '<ime-mode-change>'
+, 27: '<escape>'
+, 32: '<space>'
+, 33: '<page-up>'
+, 34: '<page-down>'
+, 35: '<end>'
+, 36: '<home>'
+, 37: '<left>'
+, 38: '<up>'
+, 39: '<right>'
+, 40: '<down>'
+, 41: '<select>'
+, 42: '<print>'
+, 43: '<execute>'
+, 44: '<snapshot>'
+, 45: '<insert>'
+, 46: '<delete>'
+, 47: '<help>'
+, 91: '<meta>'  // meta-left -- no one handles left and right properly, so we coerce into one.
+, 92: '<meta>'  // meta-right
+, 93: isOSX ? '<meta>' : '<menu>'      // chrome,opera,safari all report this for meta-right (osx mbp).
+, 95: '<sleep>'
+, 106: '<num-*>'
+, 107: '<num-+>'
+, 108: '<num-enter>'
+, 109: '<num-->'
+, 110: '<num-.>'
+, 111: '<num-/>'
+, 144: '<num-lock>'
+, 145: '<scroll-lock>'
+, 160: '<shift-left>'
+, 161: '<shift-right>'
+, 162: '<control-left>'
+, 163: '<control-right>'
+, 164: '<alt-left>'
+, 165: '<alt-right>'
+, 166: '<browser-back>'
+, 167: '<browser-forward>'
+, 168: '<browser-refresh>'
+, 169: '<browser-stop>'
+, 170: '<browser-search>'
+, 171: '<browser-favorites>'
+, 172: '<browser-home>'
+
+  // ff/osx reports '<volume-mute>' for '-'
+, 173: isOSX && maybeFirefox ? '-' : '<volume-mute>'
+, 174: '<volume-down>'
+, 175: '<volume-up>'
+, 176: '<next-track>'
+, 177: '<prev-track>'
+, 178: '<stop>'
+, 179: '<play-pause>'
+, 180: '<launch-mail>'
+, 181: '<launch-media-select>'
+, 182: '<launch-app 1>'
+, 183: '<launch-app 2>'
+, 186: ';'
+, 187: '='
+, 188: ','
+, 189: '-'
+, 190: '.'
+, 191: '/'
+, 192: '`'
+, 219: '['
+, 220: '\\'
+, 221: ']'
+, 222: "'"
+, 223: '<meta>'
+, 224: '<meta>'       // firefox reports meta here.
+, 226: '<alt-gr>'
+, 229: '<ime-process>'
+, 231: isOpera ? '`' : '<unicode>'
+, 246: '<attention>'
+, 247: '<crsel>'
+, 248: '<exsel>'
+, 249: '<erase-eof>'
+, 250: '<play>'
+, 251: '<zoom>'
+, 252: '<no-name>'
+, 253: '<pa-1>'
+, 254: '<clear>'
+}
+
+for(i = 58; i < 65; ++i) {
+  output[i] = String.fromCharCode(i)
+}
+
+// 0-9
+for(i = 48; i < 58; ++i) {
+  output[i] = (i - 48)+''
+}
+
+// A-Z
+for(i = 65; i < 91; ++i) {
+  output[i] = String.fromCharCode(i)
+}
+
+// num0-9
+for(i = 96; i < 107; ++i) {
+  output[i] = '<num-'+(i - 96)+'>'
+}
+
+// F1-F24
+for(i = 112; i < 136; ++i) {
+  output[i] = 'F'+(i-111)
+}
+
+})()
+},{}],12:[function(require,module,exports){
+(function(){module.exports = raf
+
+var EE = require('events').EventEmitter
+  , global = typeof window === 'undefined' ? this : window
+  , now = global.performance && global.performance.now ? function() {
+    return performance.now()
+  } : Date.now || function () {
+    return +new Date()
+  }
+
+var _raf =
+  global.requestAnimationFrame ||
+  global.webkitRequestAnimationFrame ||
+  global.mozRequestAnimationFrame ||
+  global.msRequestAnimationFrame ||
+  global.oRequestAnimationFrame ||
+  (global.setImmediate ? function(fn, el) {
+    setImmediate(fn)
+  } :
+  function(fn, el) {
+    setTimeout(fn, 0)
+  })
+
+function raf(el) {
+  var now = raf.now()
+    , ee = new EE
+
+  ee.pause = function() { ee.paused = true }
+  ee.resume = function() { ee.paused = false }
+
+  _raf(iter, el)
+
+  return ee
+
+  function iter(timestamp) {
+    var _now = raf.now()
+      , dt = _now - now
+    
+    now = _now
+
+    ee.emit('data', dt)
+
+    if(!ee.paused) {
+      _raf(iter, el)
+    }
+  }
+}
+
+raf.polyfill = _raf
+raf.now = now
+
+
+})()
+},{"events":13}],5:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var requestAnimationFrame = require('raf');
+var inherits = require('inherits');
+
+module.exports = Game;
+inherits(Game, EventEmitter);
+
+function Game(options){
+  this.canvas = document.getElementById(options.canvasId);
+  this.context = this.canvas.getContext('2d');
+  this.width = this.canvas.width = options.width;
+  this.height = this.canvas.height = options.height;
+  this.backgroundColor = options.backgroundColor;
+
+  if (options.maxListeners){
+    this.setMaxListeners(options.maxListeners);
+  } else {
+    this.setMaxListeners(0);
+  }
+
+  this.loop();
+}
+
+Game.prototype.loop = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+};
+
+Game.prototype.pause = function(){
+  this.ticker.pause();
+  this.emit('pause');
+};
+
+Game.prototype.resume = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+
+  this.emit('resume');
+};
+
+Game.prototype.update = function(interval){
+  if (this.currentScene){
+    this.sceneManager.update(interval);
+  }
+  this.emit('update', interval);
+};
+
+Game.prototype.draw = function(){
+  if (this.currentScene){
+    this.context.fillStyle = this.currentScene.backgroundColor;
+    this.sceneManager.draw(this.context);
+
+  } else {
+    this.context.fillStyle = this.backgroundColor;
+  }
+  this.context.fillRect(0, 0, this.width, this.height);
+  this.emit('draw', this.context)
+};
+},{"events":13,"raf":12,"inherits":8}],6:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+var vkey = require('vkey');
+
+module.exports = Keyboard;
+inherits(Keyboard, EventEmitter);
+
+function Keyboard(game){
+  this.game = game || {};
+  this.keysDown = {};
+  this.initializeListeners();
+}
+
+Keyboard.prototype.initializeListeners = function(){
+  var self = this;
+
+  document.addEventListener('keydown', function(e){
+    self.emit('keydown', vkey[e.keyCode]);
+    self.keysDown[vkey[e.keyCode]] = true;
+
+    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
+      e.preventDefault();
+    }
+  }, false);
+
+  document.addEventListener('keyup', function(e){
+    self.emit('keyup', vkey[e.keyCode]);
+    delete self.keysDown[vkey[e.keyCode]];
+  }, false);
+};
+},{"events":13,"vkey":11,"inherits":8}],7:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+
+module.exports = Mouse;
+inherits(Mouse, EventEmitter);
+
+function Mouse(game){
+  this.game = game || {};
+  this.el = game.canvas;
+  this.initializeListeners();
+}
+
+Mouse.prototype.initializeListeners = function(){
+  var self = this;
+
+  this.el.addEventListener('click', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('click', location);
+    })
+  });
+
+  this.el.addEventListener('mousedown', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousedown', location);
+    })
+  });
+
+  this.el.addEventListener('mouseup', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mouseup', location);
+    })
+  });
+
+  this.el.addEventListener('mousemove', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousemove', location);
+    })
+  });
+};
+
+Mouse.prototype.calculateOffset = function(e, callback){
+  var canvas = e.target;
+  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
+  var offsetY = canvas.offsetTop - canvas.scrollTop;
+
+  var location = {
+    x: e.pageX - offsetX,
+    y: e.pageY - offsetY
+  };
+
+  callback(location);
+}
+
+},{"events":13,"inherits":8}],14:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -273,7 +781,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],9:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -459,515 +967,7 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":8}],3:[function(require,module,exports){
-var inherits = require('inherits');
-var Entity = require('crtrdg-entity');
-
-module.exports = Player;
-inherits(Player, Entity);
-
-function Player(options){
-  this.position = { 
-    x: options.position.x, 
-    y: options.position.y 
-  };
-
-  this.size = {
-    x: options.size.x,
-    y: options.size.y
-  };
-
-  this.velocity = {
-    x: 0,
-    y: 0
-  };
-
-  this.direction = 'right';
-  
-  this.friction = 0.8;
-  this.speed = options.speed;
-  this.color = options.color;
-}
-
-Player.prototype.move = function(){
-  this.position.x += this.velocity.x * this.friction;
-  this.position.y += this.velocity.y * this.friction;
-};
-
-Player.prototype.boundaries = function(){
-  if (this.position.x <= 0){
-    this.position.x = 0;
-  }
-
-  if (this.position.x >= 3000 - this.size.x){
-    this.position.x = 3000 - this.size.x;
-  }
-
-  if (this.position.y <= 0){
-    this.position.y = 0;
-  }
-
-  if (this.position.y >= 320 - this.size.y){
-    this.position.y = 320 - this.size.y;
-    this.jumping = false;
-  }
-};
-
-Player.prototype.input = function(keysdown){
-  if ('A' in keysdown){
-    this.direction = 'left';
-    this.velocity.x = -this.speed;
-  }
-
-  if ('D' in keysdown){
-    this.direction = 'right';
-    this.velocity.x = this.speed;
-  }
-
-  if ('W' in keysdown|| '<space>' in keysdown){
-    if (!this.jumping){
-      this.jumping = true;
-      this.velocity.y = -15;
-    }
-    
-    console.log('wut')
-  }
-
-  if ('S' in keysdown){
-    this.velocity.y = this.speed;
-  }
-};
-},{"inherits":10,"crtrdg-entity":11}],4:[function(require,module,exports){
-randomColor = require('random-color');
-
-module.exports = Map;
-
-function Map(game, width, height){
-  this.game = game;
-  this.width = width;
-  this.height = height;
-  this.image = null;
-}
-
-Map.prototype.generate = function(callback){
-  var ctx = document.createElement('canvas').getContext('2d');
-
-  ctx.canvas.width = this.width;
-  ctx.canvas.height = this.height;
-
-  var rows = parseInt(this.width/16);
-  var columns = parseInt(this.height/16);
-
-  ctx.save();     
-  for (var x = 0, i = 0; i < rows; x+=16, i++) {
-    for (var y = 0, j=0; j < columns; y+=16, j++) { 
-      ctx.beginPath();      
-      ctx.fillStyle = randomColor()                   
-      ctx.rect(x, y, 15, 15);        
-      ctx.fill();
-      ctx.closePath();
-    }
-    
-  }   
-  ctx.restore();  
-  
-  // store the generate map as this image texture
-  this.image = new Image();
-  this.image.src = ctx.canvas.toDataURL("image/png");         
-  
-  // clear context
-  ctx = null;
-}
-
-// draw the map adjusted to camera
-Map.prototype.draw = function(context, xView, yView){         
-  context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
-}
-},{"random-color":12}],10:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],12:[function(require,module,exports){
-module.exports = color;
-
-function num(cap){
-  return Math.floor( Math.random() * cap );
-}
-
-function color(cap){
-  cap || ( cap = 255 );
-  return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
-}
-
-},{}],13:[function(require,module,exports){
-(function(){var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
-  , isOSX = /OS X/.test(ua)
-  , isOpera = /Opera/.test(ua)
-  , maybeFirefox = !/like Gecko/.test(ua) && !isOpera
-
-var i, output = module.exports = {
-  0:  isOSX ? '<menu>' : '<UNK>'
-, 1:  '<mouse 1>'
-, 2:  '<mouse 2>'
-, 3:  '<break>'
-, 4:  '<mouse 3>'
-, 5:  '<mouse 4>'
-, 6:  '<mouse 5>'
-, 8:  '<backspace>'
-, 9:  '<tab>'
-, 12: '<clear>'
-, 13: '<enter>'
-, 16: '<shift>'
-, 17: '<control>'
-, 18: '<alt>'
-, 19: '<pause>'
-, 20: '<caps-lock>'
-, 21: '<ime-hangul>'
-, 23: '<ime-junja>'
-, 24: '<ime-final>'
-, 25: '<ime-kanji>'
-, 27: '<escape>'
-, 28: '<ime-convert>'
-, 29: '<ime-nonconvert>'
-, 30: '<ime-accept>'
-, 31: '<ime-mode-change>'
-, 27: '<escape>'
-, 32: '<space>'
-, 33: '<page-up>'
-, 34: '<page-down>'
-, 35: '<end>'
-, 36: '<home>'
-, 37: '<left>'
-, 38: '<up>'
-, 39: '<right>'
-, 40: '<down>'
-, 41: '<select>'
-, 42: '<print>'
-, 43: '<execute>'
-, 44: '<snapshot>'
-, 45: '<insert>'
-, 46: '<delete>'
-, 47: '<help>'
-, 91: '<meta>'  // meta-left -- no one handles left and right properly, so we coerce into one.
-, 92: '<meta>'  // meta-right
-, 93: isOSX ? '<meta>' : '<menu>'      // chrome,opera,safari all report this for meta-right (osx mbp).
-, 95: '<sleep>'
-, 106: '<num-*>'
-, 107: '<num-+>'
-, 108: '<num-enter>'
-, 109: '<num-->'
-, 110: '<num-.>'
-, 111: '<num-/>'
-, 144: '<num-lock>'
-, 145: '<scroll-lock>'
-, 160: '<shift-left>'
-, 161: '<shift-right>'
-, 162: '<control-left>'
-, 163: '<control-right>'
-, 164: '<alt-left>'
-, 165: '<alt-right>'
-, 166: '<browser-back>'
-, 167: '<browser-forward>'
-, 168: '<browser-refresh>'
-, 169: '<browser-stop>'
-, 170: '<browser-search>'
-, 171: '<browser-favorites>'
-, 172: '<browser-home>'
-
-  // ff/osx reports '<volume-mute>' for '-'
-, 173: isOSX && maybeFirefox ? '-' : '<volume-mute>'
-, 174: '<volume-down>'
-, 175: '<volume-up>'
-, 176: '<next-track>'
-, 177: '<prev-track>'
-, 178: '<stop>'
-, 179: '<play-pause>'
-, 180: '<launch-mail>'
-, 181: '<launch-media-select>'
-, 182: '<launch-app 1>'
-, 183: '<launch-app 2>'
-, 186: ';'
-, 187: '='
-, 188: ','
-, 189: '-'
-, 190: '.'
-, 191: '/'
-, 192: '`'
-, 219: '['
-, 220: '\\'
-, 221: ']'
-, 222: "'"
-, 223: '<meta>'
-, 224: '<meta>'       // firefox reports meta here.
-, 226: '<alt-gr>'
-, 229: '<ime-process>'
-, 231: isOpera ? '`' : '<unicode>'
-, 246: '<attention>'
-, 247: '<crsel>'
-, 248: '<exsel>'
-, 249: '<erase-eof>'
-, 250: '<play>'
-, 251: '<zoom>'
-, 252: '<no-name>'
-, 253: '<pa-1>'
-, 254: '<clear>'
-}
-
-for(i = 58; i < 65; ++i) {
-  output[i] = String.fromCharCode(i)
-}
-
-// 0-9
-for(i = 48; i < 58; ++i) {
-  output[i] = (i - 48)+''
-}
-
-// A-Z
-for(i = 65; i < 91; ++i) {
-  output[i] = String.fromCharCode(i)
-}
-
-// num0-9
-for(i = 96; i < 107; ++i) {
-  output[i] = '<num-'+(i - 96)+'>'
-}
-
-// F1-F24
-for(i = 112; i < 136; ++i) {
-  output[i] = 'F'+(i-111)
-}
-
-})()
-},{}],5:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-var vkey = require('vkey');
-
-module.exports = Keyboard;
-inherits(Keyboard, EventEmitter);
-
-function Keyboard(game){
-  this.game = game || {};
-  this.keysDown = {};
-  this.initializeListeners();
-}
-
-Keyboard.prototype.initializeListeners = function(){
-  var self = this;
-
-  document.addEventListener('keydown', function(e){
-    self.emit('keydown', vkey[e.keyCode]);
-    self.keysDown[vkey[e.keyCode]] = true;
-
-    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
-      e.preventDefault();
-    }
-  }, false);
-
-  document.addEventListener('keyup', function(e){
-    self.emit('keyup', vkey[e.keyCode]);
-    delete self.keysDown[vkey[e.keyCode]];
-  }, false);
-};
-},{"events":9,"vkey":13,"inherits":10}],6:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var requestAnimationFrame = require('raf');
-var inherits = require('inherits');
-
-module.exports = Game;
-inherits(Game, EventEmitter);
-
-function Game(options){
-  this.canvas = document.getElementById(options.canvasId);
-  this.context = this.canvas.getContext('2d');
-  this.width = this.canvas.width = options.width;
-  this.height = this.canvas.height = options.height;
-  this.backgroundColor = options.backgroundColor;
-
-  if (options.maxListeners){
-    this.setMaxListeners(options.maxListeners);
-  } else {
-    this.setMaxListeners(0);
-  }
-
-  this.loop();
-}
-
-Game.prototype.loop = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-};
-
-Game.prototype.pause = function(){
-  this.ticker.pause();
-  this.emit('pause');
-};
-
-Game.prototype.resume = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-
-  this.emit('resume');
-};
-
-Game.prototype.update = function(interval){
-  if (this.currentScene){
-    this.sceneManager.update(interval);
-  }
-  this.emit('update', interval);
-};
-
-Game.prototype.draw = function(){
-  if (this.currentScene){
-    this.context.fillStyle = this.currentScene.backgroundColor;
-    this.sceneManager.draw(this.context);
-
-  } else {
-    this.context.fillStyle = this.backgroundColor;
-  }
-  this.context.fillRect(0, 0, this.width, this.height);
-  this.emit('draw', this.context)
-};
-},{"events":9,"raf":14,"inherits":10}],7:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-
-module.exports = Mouse;
-inherits(Mouse, EventEmitter);
-
-function Mouse(game){
-  this.game = game || {};
-  this.el = game.canvas;
-  this.initializeListeners();
-}
-
-Mouse.prototype.initializeListeners = function(){
-  var self = this;
-
-  this.el.addEventListener('click', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('click', location);
-    })
-  });
-
-  this.el.addEventListener('mousedown', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousedown', location);
-    })
-  });
-
-  this.el.addEventListener('mouseup', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mouseup', location);
-    })
-  });
-
-  this.el.addEventListener('mousemove', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousemove', location);
-    })
-  });
-};
-
-Mouse.prototype.calculateOffset = function(e, callback){
-  var canvas = e.target;
-  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
-  var offsetY = canvas.offsetTop - canvas.scrollTop;
-
-  var location = {
-    x: e.pageX - offsetX,
-    y: e.pageY - offsetY
-  };
-
-  callback(location);
-}
-
-},{"events":9,"inherits":10}],14:[function(require,module,exports){
-(function(){module.exports = raf
-
-var EE = require('events').EventEmitter
-  , global = typeof window === 'undefined' ? this : window
-  , now = global.performance && global.performance.now ? function() {
-    return performance.now()
-  } : Date.now || function () {
-    return +new Date()
-  }
-
-var _raf =
-  global.requestAnimationFrame ||
-  global.webkitRequestAnimationFrame ||
-  global.mozRequestAnimationFrame ||
-  global.msRequestAnimationFrame ||
-  global.oRequestAnimationFrame ||
-  (global.setImmediate ? function(fn, el) {
-    setImmediate(fn)
-  } :
-  function(fn, el) {
-    setTimeout(fn, 0)
-  })
-
-function raf(el) {
-  var now = raf.now()
-    , ee = new EE
-
-  ee.pause = function() { ee.paused = true }
-  ee.resume = function() { ee.paused = false }
-
-  _raf(iter, el)
-
-  return ee
-
-  function iter(timestamp) {
-    var _now = raf.now()
-      , dt = _now - now
-    
-    now = _now
-
-    ee.emit('data', dt)
-
-    if(!ee.paused) {
-      _raf(iter, el)
-    }
-  }
-}
-
-raf.polyfill = _raf
-raf.now = now
-
-
-})()
-},{"events":9}],11:[function(require,module,exports){
+},{"__browserify_process":14}],9:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var aabb = require('aabb-2d');
@@ -1058,7 +1058,7 @@ Entity.prototype.setBoundingBox = function(){
   this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
 };
 
-},{"events":9,"aabb-2d":15,"inherits":10}],15:[function(require,module,exports){
+},{"events":13,"aabb-2d":15,"inherits":8}],15:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2
