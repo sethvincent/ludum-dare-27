@@ -52,7 +52,8 @@ var player = new Player({
     y: game.height / 2 - 6,
   },
   color: '#fff',
-  speed: 11
+  speed: 11,
+  friction: 0.9
 });
 
 var map = new Map(game, 3000, 320);

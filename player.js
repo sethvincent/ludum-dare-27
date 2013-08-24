@@ -23,7 +23,7 @@ function Player(options){
   this.direction = 'right';
   this.scrunched = false;
   
-  this.friction = 0.8;
+  this.friction = options.friction;
   this.speed = options.speed;
   this.color = options.color;
 }
