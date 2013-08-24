@@ -126,6 +126,76 @@ Rectangle.prototype.overlaps = function(r) {
   );
 }
 },{}],2:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Player;
+inherits(Player, Entity);
+
+function Player(options){
+  this.position = { 
+    x: options.position.x, 
+    y: options.position.y 
+  };
+
+  this.size = {
+    x: options.size.x,
+    y: options.size.y
+  };
+
+  this.velocity = {
+    x: 0,
+    y: 0
+  };
+  
+  this.friction = 0.3;
+  this.speed = options.speed;
+  this.color = options.color;
+}
+
+Player.prototype.move = function(){
+  this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+};
+
+Player.prototype.boundaries = function(){
+  if (this.position.x <= 0){
+    this.position.x = 0;
+  }
+
+  if (this.position.x >= 3000 - this.size.x){
+    this.position.x = 3000 - this.size.x;
+  }
+
+  if (this.position.y <= 0){
+    this.position.y = 0;
+  }
+
+  if (this.position.y >= 320 - this.size.y){
+    this.position.y = 320 - this.size.y;
+  }
+};
+
+Player.prototype.input = function(keyboard){
+  if ('A' in keyboard.keysDown){
+    this.velocity.x = -this.speed;
+  }
+
+  if ('D' in keyboard.keysDown){
+    this.velocity.x = this.speed;
+  }
+
+  if ('W' in keyboard.keysDown){
+    this.velocity.y = -this.speed;
+  }
+
+  if ('S' in keyboard.keysDown){
+    this.velocity.y = this.speed;
+  }
+};
+},{"inherits":3,"crtrdg-entity":4}],5:[function(require,module,exports){
+randomColor = require('random-color');
+
 module.exports = Map;
 
 function Map(game, width, height){
@@ -145,14 +215,15 @@ Map.prototype.generate = function(callback){
   var columns = parseInt(this.height/20);
 
   ctx.save();     
-  ctx.fillStyle = "#f1f1f1";        
   for (var x = 0, i = 0; i < rows; x+=20, i++) {
-    ctx.beginPath();      
-    for (var y = 0, j=0; j < columns; y+=20, j++) {            
+    for (var y = 0, j=0; j < columns; y+=20, j++) { 
+      ctx.beginPath();      
+      ctx.fillStyle = randomColor()                   
       ctx.rect(x, y, 19, 19);        
+      ctx.fill();
+      ctx.closePath();
     }
-    ctx.fill();
-    ctx.closePath();      
+    
   }   
   ctx.restore();  
   
@@ -168,7 +239,32 @@ Map.prototype.generate = function(callback){
 Map.prototype.draw = function(context, xView, yView){         
   context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
 }
-},{}],3:[function(require,module,exports){
+},{"random-color":6}],3:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],7:[function(require,module,exports){
 var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
@@ -216,16 +312,16 @@ var player = new Player({
     x: game.width / 2 - 4,
     y: game.height / 2 - 6,
   },
-  color: '#cfcfc2',
+  color: '#fff',
   speed: 3.5
 });
 
-var map = new Map(game, 3000, 3000);
+var map = new Map(game, 3000, 320);
 map.generate();
 
 var camera = new Camera({
   follow: player,
-  followPoint: { x: game.width / 2, y: game.height / 2 },
+  followPoint: { x: game.width / 2 },
   viewport: { width: game.width, height: game.height },
   map: map
 });
@@ -259,7 +355,19 @@ player.on('draw', function(context){
   context.restore();
 });
 
-},{"./player":4,"./camera":1,"./map":2,"crtrdg-gameloop":5,"crtrdg-keyboard":6,"crtrdg-mouse":7}],8:[function(require,module,exports){
+},{"./player":2,"./camera":1,"./map":5,"crtrdg-mouse":8,"crtrdg-gameloop":9,"crtrdg-keyboard":10}],6:[function(require,module,exports){
+module.exports = color;
+
+function num(cap){
+  return Math.floor( Math.random() * cap );
+}
+
+function color(cap){
+  cap || ( cap = 255 );
+  return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
+}
+
+},{}],11:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -313,7 +421,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],9:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -499,100 +607,252 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":8}],4:[function(require,module,exports){
+},{"__browserify_process":11}],8:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
-var Entity = require('crtrdg-entity');
 
-module.exports = Player;
-inherits(Player, Entity);
+module.exports = Mouse;
+inherits(Mouse, EventEmitter);
 
-function Player(options){
-  this.position = { 
-    x: options.position.x, 
-    y: options.position.y 
+function Mouse(game){
+  this.game = game || {};
+  this.el = game.canvas;
+  this.initializeListeners();
+}
+
+Mouse.prototype.initializeListeners = function(){
+  var self = this;
+
+  this.el.addEventListener('click', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('click', location);
+    })
+  });
+
+  this.el.addEventListener('mousedown', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousedown', location);
+    })
+  });
+
+  this.el.addEventListener('mouseup', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mouseup', location);
+    })
+  });
+
+  this.el.addEventListener('mousemove', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousemove', location);
+    })
+  });
+};
+
+Mouse.prototype.calculateOffset = function(e, callback){
+  var canvas = e.target;
+  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
+  var offsetY = canvas.offsetTop - canvas.scrollTop;
+
+  var location = {
+    x: e.pageX - offsetX,
+    y: e.pageY - offsetY
   };
 
-  this.size = {
-    x: options.size.x,
-    y: options.size.y
-  };
+  callback(location);
+}
 
-  this.velocity = {
-    x: 0,
-    y: 0
-  };
+},{"events":12,"inherits":3}],4:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+var aabb = require('aabb-2d');
+
+module.exports = Entity;
+inherits(Entity, EventEmitter);
+
+function Entity(){
+  return this;
+}
+
+Entity.prototype.addTo = function(game){
+  this.game = game || {};
+
+  if (!this.game.entities){
+    this.game.entities = [];
+  }
+
+  this.game.entities.push(this);
+  this.game.findEntity = this.findEntity;
+  this.initializeListeners();
+  this.setBoundingBox();
+
+  this.on('update', function(interval){
+    this.setBoundingBox();
+  });
+
+  this.exists = true;
+
+  return this;
+};
+
+Entity.prototype.initializeListeners = function(){
+  var self = this;
   
-  this.friction = 0.3;
-  this.speed = options.speed;
-  this.color = options.color;
-}
+  this.findEntity(this, function(exists, entities, index){
+    if (exists){
+      self.game.on('update', function(interval){
+        self.emit('update', interval)
+      });
 
-Player.prototype.move = function(){
-  this.position.x += this.velocity.x;
-  this.position.y += this.velocity.y;
+      self.game.on('draw', function(context){
+        self.emit('draw', context);
+      });
+    }
+  });
 };
 
-Player.prototype.boundaries = function(){
-  if (this.position.x <= 0){
-    this.position.x = 0;
+Entity.prototype.remove = function(){
+  this.exists = false;
+  
+  this.removeAllListeners('update');
+  this.removeAllListeners('draw');
+
+  this.findEntity(this, function(exists, entities, index){
+    if (exists){
+      entities.splice(index, 1);
+    }
+  });
+};
+
+Entity.prototype.findEntity = function(entity, callback){
+  var entities;
+
+  if (this.game === undefined){
+    entities = this.entities;
+  } else {
+    entities = this.game.entities;
   }
 
-  if (this.position.x >= 3000 - this.size.x){
-    this.position.x = 3000 - this.size.x;
-  }
-
-  if (this.position.y <= 0){
-    this.position.y = 0;
-  }
-
-  if (this.position.y >= 3000 - this.size.y){
-    this.position.y = 3000 - this.size.y;
+  for (var i=0; i<entities.length; i++){
+    if (entities[i] === entity) {
+      callback(true, entities, i);
+    }
   }
 };
 
-Player.prototype.input = function(keyboard){
-  if ('A' in keyboard.keysDown){
-    this.velocity.x = -this.speed;
+Entity.prototype.touches = function(entity){
+  if (entity.exists){
+    return this.boundingBox.intersects(entity.boundingBox);
   }
-
-  if ('D' in keyboard.keysDown){
-    this.velocity.x = this.speed;
-  }
-
-  if ('W' in keyboard.keysDown){
-    this.velocity.y = -this.speed;
-  }
-
-  if ('S' in keyboard.keysDown){
-    this.velocity.y = this.speed;
-  }
-};
-},{"crtrdg-entity":10,"inherits":11}],11:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
+  else {
+    return false;
   }
 }
 
-},{}],12:[function(require,module,exports){
+Entity.prototype.setBoundingBox = function(){
+  this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
+};
+
+},{"events":12,"inherits":3,"aabb-2d":13}],10:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+var vkey = require('vkey');
+
+module.exports = Keyboard;
+inherits(Keyboard, EventEmitter);
+
+function Keyboard(game){
+  this.game = game || {};
+  this.keysDown = {};
+  this.initializeListeners();
+}
+
+Keyboard.prototype.initializeListeners = function(){
+  var self = this;
+
+  document.addEventListener('keydown', function(e){
+    self.emit('keydown', vkey[e.keyCode]);
+    self.keysDown[vkey[e.keyCode]] = true;
+
+    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
+      e.preventDefault();
+    }
+  }, false);
+
+  document.addEventListener('keyup', function(e){
+    self.emit('keyup', vkey[e.keyCode]);
+    delete self.keysDown[vkey[e.keyCode]];
+  }, false);
+};
+},{"events":12,"vkey":14,"inherits":3}],9:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var requestAnimationFrame = require('raf');
+var inherits = require('inherits');
+
+module.exports = Game;
+inherits(Game, EventEmitter);
+
+function Game(options){
+  this.canvas = document.getElementById(options.canvasId);
+  this.context = this.canvas.getContext('2d');
+  this.width = this.canvas.width = options.width;
+  this.height = this.canvas.height = options.height;
+  this.backgroundColor = options.backgroundColor;
+
+  if (options.maxListeners){
+    this.setMaxListeners(options.maxListeners);
+  } else {
+    this.setMaxListeners(0);
+  }
+
+  this.loop();
+}
+
+Game.prototype.loop = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+};
+
+Game.prototype.pause = function(){
+  this.ticker.pause();
+  this.emit('pause');
+};
+
+Game.prototype.resume = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+
+  this.emit('resume');
+};
+
+Game.prototype.update = function(interval){
+  if (this.currentScene){
+    this.sceneManager.update(interval);
+  }
+  this.emit('update', interval);
+};
+
+Game.prototype.draw = function(){
+  if (this.currentScene){
+    this.context.fillStyle = this.currentScene.backgroundColor;
+    this.sceneManager.draw(this.context);
+
+  } else {
+    this.context.fillStyle = this.backgroundColor;
+  }
+  this.context.fillRect(0, 0, this.width, this.height);
+  this.emit('draw', this.context)
+};
+},{"events":12,"inherits":3,"raf":15}],14:[function(require,module,exports){
 (function(){var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
   , isOSX = /OS X/.test(ua)
   , isOpera = /Opera/.test(ua)
@@ -731,76 +991,7 @@ for(i = 112; i < 136; ++i) {
 }
 
 })()
-},{}],5:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var requestAnimationFrame = require('raf');
-var inherits = require('inherits');
-
-module.exports = Game;
-inherits(Game, EventEmitter);
-
-function Game(options){
-  this.canvas = document.getElementById(options.canvasId);
-  this.context = this.canvas.getContext('2d');
-  this.width = this.canvas.width = options.width;
-  this.height = this.canvas.height = options.height;
-  this.backgroundColor = options.backgroundColor;
-
-  if (options.maxListeners){
-    this.setMaxListeners(options.maxListeners);
-  } else {
-    this.setMaxListeners(0);
-  }
-
-  this.loop();
-}
-
-Game.prototype.loop = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-};
-
-Game.prototype.pause = function(){
-  this.ticker.pause();
-  this.emit('pause');
-};
-
-Game.prototype.resume = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-
-  this.emit('resume');
-};
-
-Game.prototype.update = function(interval){
-  if (this.currentScene){
-    this.sceneManager.update(interval);
-  }
-  this.emit('update', interval);
-};
-
-Game.prototype.draw = function(){
-  if (this.currentScene){
-    this.context.fillStyle = this.currentScene.backgroundColor;
-    this.sceneManager.draw(this.context);
-
-  } else {
-    this.context.fillStyle = this.backgroundColor;
-  }
-  this.context.fillRect(0, 0, this.width, this.height);
-  this.emit('draw', this.context)
-};
-},{"events":9,"raf":13,"inherits":11}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function(){module.exports = raf
 
 var EE = require('events').EventEmitter
@@ -854,183 +1045,7 @@ raf.now = now
 
 
 })()
-},{"events":9}],6:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-var vkey = require('vkey');
-
-module.exports = Keyboard;
-inherits(Keyboard, EventEmitter);
-
-function Keyboard(game){
-  this.game = game || {};
-  this.keysDown = {};
-  this.initializeListeners();
-}
-
-Keyboard.prototype.initializeListeners = function(){
-  var self = this;
-
-  document.addEventListener('keydown', function(e){
-    self.emit('keydown', vkey[e.keyCode]);
-    self.keysDown[vkey[e.keyCode]] = true;
-
-    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
-      e.preventDefault();
-    }
-  }, false);
-
-  document.addEventListener('keyup', function(e){
-    self.emit('keyup', vkey[e.keyCode]);
-    delete self.keysDown[vkey[e.keyCode]];
-  }, false);
-};
-},{"events":9,"vkey":12,"inherits":11}],7:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-
-module.exports = Mouse;
-inherits(Mouse, EventEmitter);
-
-function Mouse(game){
-  this.game = game || {};
-  this.el = game.canvas;
-  this.initializeListeners();
-}
-
-Mouse.prototype.initializeListeners = function(){
-  var self = this;
-
-  this.el.addEventListener('click', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('click', location);
-    })
-  });
-
-  this.el.addEventListener('mousedown', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousedown', location);
-    })
-  });
-
-  this.el.addEventListener('mouseup', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mouseup', location);
-    })
-  });
-
-  this.el.addEventListener('mousemove', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousemove', location);
-    })
-  });
-};
-
-Mouse.prototype.calculateOffset = function(e, callback){
-  var canvas = e.target;
-  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
-  var offsetY = canvas.offsetTop - canvas.scrollTop;
-
-  var location = {
-    x: e.pageX - offsetX,
-    y: e.pageY - offsetY
-  };
-
-  callback(location);
-}
-
-},{"events":9,"inherits":11}],10:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-var aabb = require('aabb-2d');
-
-module.exports = Entity;
-inherits(Entity, EventEmitter);
-
-function Entity(){
-  return this;
-}
-
-Entity.prototype.addTo = function(game){
-  this.game = game || {};
-
-  if (!this.game.entities){
-    this.game.entities = [];
-  }
-
-  this.game.entities.push(this);
-  this.game.findEntity = this.findEntity;
-  this.initializeListeners();
-  this.setBoundingBox();
-
-  this.on('update', function(interval){
-    this.setBoundingBox();
-  });
-
-  this.exists = true;
-
-  return this;
-};
-
-Entity.prototype.initializeListeners = function(){
-  var self = this;
-  
-  this.findEntity(this, function(exists, entities, index){
-    if (exists){
-      self.game.on('update', function(interval){
-        self.emit('update', interval)
-      });
-
-      self.game.on('draw', function(context){
-        self.emit('draw', context);
-      });
-    }
-  });
-};
-
-Entity.prototype.remove = function(){
-  this.exists = false;
-  
-  this.removeAllListeners('update');
-  this.removeAllListeners('draw');
-
-  this.findEntity(this, function(exists, entities, index){
-    if (exists){
-      entities.splice(index, 1);
-    }
-  });
-};
-
-Entity.prototype.findEntity = function(entity, callback){
-  var entities;
-
-  if (this.game === undefined){
-    entities = this.entities;
-  } else {
-    entities = this.game.entities;
-  }
-
-  for (var i=0; i<entities.length; i++){
-    if (entities[i] === entity) {
-      callback(true, entities, i);
-    }
-  }
-};
-
-Entity.prototype.touches = function(entity){
-  if (entity.exists){
-    return this.boundingBox.intersects(entity.boundingBox);
-  }
-  else {
-    return false;
-  }
-}
-
-Entity.prototype.setBoundingBox = function(){
-  this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
-};
-
-},{"events":9,"aabb-2d":14,"inherits":11}],14:[function(require,module,exports){
+},{"events":12}],13:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2
@@ -1125,7 +1140,7 @@ proto.union = function(aabb) {
   return new AABB([base_x, base_y], [max_x - base_x, max_y - base_y])
 }
 
-},{"gl-matrix":15}],15:[function(require,module,exports){
+},{"gl-matrix":16}],16:[function(require,module,exports){
 (function(){/**
  * @fileoverview gl-matrix - High performance matrix and vector operations
  * @author Brandon Jones
@@ -4199,5 +4214,5 @@ if(typeof(exports) !== 'undefined') {
 })();
 
 })()
-},{}]},{},[3])
+},{}]},{},[7])
 ;
