@@ -176,6 +176,8 @@ var Player = require('./player');
 var Camera = require('./camera');
 var Map = require('./map');
 
+
+/* create game */
 var game = new Game({
   canvasId: 'game',
   width: window.innerWidth,
@@ -257,75 +259,7 @@ player.on('draw', function(context){
   context.restore();
 });
 
-},{"./player":4,"./camera":1,"./map":2,"crtrdg-gameloop":5,"crtrdg-keyboard":6,"crtrdg-mouse":7}],4:[function(require,module,exports){
-var inherits = require('inherits');
-var Entity = require('crtrdg-entity');
-
-module.exports = Player;
-inherits(Player, Entity);
-
-function Player(options){
-  this.position = { 
-    x: options.position.x, 
-    y: options.position.y 
-  };
-
-  this.size = {
-    x: options.size.x,
-    y: options.size.y
-  };
-
-  this.velocity = {
-    x: 0,
-    y: 0
-  };
-  
-  this.friction = 0.3;
-  this.speed = options.speed;
-  this.color = options.color;
-}
-
-Player.prototype.move = function(){
-  this.position.x += this.velocity.x;
-  this.position.y += this.velocity.y;
-};
-
-Player.prototype.boundaries = function(){
-  if (this.position.x <= 0){
-    this.position.x = 0;
-  }
-
-  if (this.position.x >= 3000 - this.size.x){
-    this.position.x = 3000 - this.size.x;
-  }
-
-  if (this.position.y <= 0){
-    this.position.y = 0;
-  }
-
-  if (this.position.y >= 3000 - this.size.y){
-    this.position.y = 3000 - this.size.y;
-  }
-};
-
-Player.prototype.input = function(keyboard){
-  if ('A' in keyboard.keysDown){
-    this.velocity.x = -this.speed;
-  }
-
-  if ('D' in keyboard.keysDown){
-    this.velocity.x = this.speed;
-  }
-
-  if ('W' in keyboard.keysDown){
-    this.velocity.y = -this.speed;
-  }
-
-  if ('S' in keyboard.keysDown){
-    this.velocity.y = this.speed;
-  }
-};
-},{"inherits":8,"crtrdg-entity":9}],10:[function(require,module,exports){
+},{"./player":4,"./camera":1,"./map":2,"crtrdg-gameloop":5,"crtrdg-keyboard":6,"crtrdg-mouse":7}],8:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -379,7 +313,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],11:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -565,7 +499,75 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":10}],8:[function(require,module,exports){
+},{"__browserify_process":8}],4:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Player;
+inherits(Player, Entity);
+
+function Player(options){
+  this.position = { 
+    x: options.position.x, 
+    y: options.position.y 
+  };
+
+  this.size = {
+    x: options.size.x,
+    y: options.size.y
+  };
+
+  this.velocity = {
+    x: 0,
+    y: 0
+  };
+  
+  this.friction = 0.3;
+  this.speed = options.speed;
+  this.color = options.color;
+}
+
+Player.prototype.move = function(){
+  this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+};
+
+Player.prototype.boundaries = function(){
+  if (this.position.x <= 0){
+    this.position.x = 0;
+  }
+
+  if (this.position.x >= 3000 - this.size.x){
+    this.position.x = 3000 - this.size.x;
+  }
+
+  if (this.position.y <= 0){
+    this.position.y = 0;
+  }
+
+  if (this.position.y >= 3000 - this.size.y){
+    this.position.y = 3000 - this.size.y;
+  }
+};
+
+Player.prototype.input = function(keyboard){
+  if ('A' in keyboard.keysDown){
+    this.velocity.x = -this.speed;
+  }
+
+  if ('D' in keyboard.keysDown){
+    this.velocity.x = this.speed;
+  }
+
+  if ('W' in keyboard.keysDown){
+    this.velocity.y = -this.speed;
+  }
+
+  if ('S' in keyboard.keysDown){
+    this.velocity.y = this.speed;
+  }
+};
+},{"inherits":10,"crtrdg-entity":11}],10:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -783,7 +785,7 @@ raf.now = now
 
 
 })()
-},{"events":11}],5:[function(require,module,exports){
+},{"events":9}],5:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var requestAnimationFrame = require('raf');
 var inherits = require('inherits');
@@ -852,7 +854,7 @@ Game.prototype.draw = function(){
   this.context.fillRect(0, 0, this.width, this.height);
   this.emit('draw', this.context)
 };
-},{"events":11,"raf":13,"inherits":8}],6:[function(require,module,exports){
+},{"events":9,"raf":13,"inherits":10}],6:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var vkey = require('vkey');
@@ -883,7 +885,7 @@ Keyboard.prototype.initializeListeners = function(){
     delete self.keysDown[vkey[e.keyCode]];
   }, false);
 };
-},{"events":11,"vkey":12,"inherits":8}],7:[function(require,module,exports){
+},{"events":9,"vkey":12,"inherits":10}],7:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -937,7 +939,7 @@ Mouse.prototype.calculateOffset = function(e, callback){
   callback(location);
 }
 
-},{"events":11,"inherits":8}],9:[function(require,module,exports){
+},{"events":9,"inherits":10}],11:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var aabb = require('aabb-2d');
@@ -1028,7 +1030,7 @@ Entity.prototype.setBoundingBox = function(){
   this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
 };
 
-},{"events":11,"aabb-2d":14,"inherits":8}],14:[function(require,module,exports){
+},{"events":9,"aabb-2d":14,"inherits":10}],14:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2

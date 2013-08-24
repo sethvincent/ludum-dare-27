@@ -5,6 +5,8 @@ var Player = require('./player');
 var Camera = require('./camera');
 var Map = require('./map');
 
+
+/* create game */
 var game = new Game({
   canvasId: 'game',
   width: window.innerWidth,
