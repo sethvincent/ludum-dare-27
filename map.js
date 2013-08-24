@@ -1,3 +1,5 @@
+randomColor = require('random-color');
+
 module.exports = Map;
 
 function Map(game, width, height){
@@ -17,14 +19,15 @@ Map.prototype.generate = function(callback){
   var columns = parseInt(this.height/20);
 
   ctx.save();     
-  ctx.fillStyle = "#f1f1f1";        
   for (var x = 0, i = 0; i < rows; x+=20, i++) {
-    ctx.beginPath();      
-    for (var y = 0, j=0; j < columns; y+=20, j++) {            
+    for (var y = 0, j=0; j < columns; y+=20, j++) { 
+      ctx.beginPath();      
+      ctx.fillStyle = randomColor()                   
       ctx.rect(x, y, 19, 19);        
+      ctx.fill();
+      ctx.closePath();
     }
-    ctx.fill();
-    ctx.closePath();      
+    
   }   
   ctx.restore();  
   

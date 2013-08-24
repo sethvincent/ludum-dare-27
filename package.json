@@ -9,7 +9,8 @@
     "crtrdg-entity": "~0.0.1",
     "crtrdg-keyboard": "~0.0.2",
     "crtrdg-mouse": "~0.0.1",
-    "inherits": "~2.0.0"
+    "inherits": "~2.0.0",
+    "random-color": "0.0.0"
   },
   "devDependencies": {
     "beefy": "~0.4.0",

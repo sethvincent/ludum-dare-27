@@ -45,7 +45,7 @@ var player = new Player({
     x: game.width / 2 - 4,
     y: game.height / 2 - 6,
   },
-  color: '#cfcfc2',
+  color: '#fff',
   speed: 3.5
 });
 
