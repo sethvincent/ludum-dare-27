@@ -12,7 +12,10 @@ var game = new Game({
 
 /*
 *
-* yes, this is for the 10 seconds theme
+* yes, this is for the 10 seconds theme.
+* i mean, there'll be more to it than this.
+* but it would be sorta funny if this is all i did
+* that related to the theme.
 *
 */
 
