@@ -34,35 +34,29 @@ function Camera(options){
   this.viewportRect = new Rectangle(this.position.x, this.position.y, this.viewport.width, this.viewport.height);       
             
   this.worldRect = new Rectangle(this.position.x, this.position.y, this.map.width, this.map.height);
-  console.log(this)
 }
 
 Camera.prototype.update = function(){
   var following = this.following,
   followPoint = this.followPoint;
-  console.log(this.position)
   if (following != null){   
     if (followPoint.x !== null){  
       
       if(following.position.x - this.position.x + this.deadZone.x > this.viewport.width){
-        console.log('if 1') 
         this.position.x = following.position.x - (this.viewport.width - this.deadZone.x);
       }
 
       else if(following.position.x - this.deadZone.x < this.position.x){
-        console.log('else if 1')
         this.position.x = following.position.x - this.deadZone.x;
       }
     }
 
     if (followPoint.y !== null){
       if(following.position.y - this.position.y + this.deadZone.y > this.viewport.height){
-        console.log('if 2') 
         this.position.y = following.position.y - (this.viewport.height - this.deadZone.y);
       }
 
       else if(following.position.y - this.deadZone.y < this.position.y) {
-        console.log('else if 2') 
         this.position.y = following.position.y - this.deadZone.y;
       }
     }           
@@ -126,6 +120,106 @@ Rectangle.prototype.overlaps = function(r) {
   );
 }
 },{}],2:[function(require,module,exports){
+var Game = require('crtrdg-gameloop');
+var Keyboard = require('crtrdg-keyboard');
+var Mouse = require('crtrdg-mouse');
+var Player = require('./player');
+var Camera = require('./camera');
+var Map = require('./map');
+
+
+/* create game */
+var game = new Game({
+  canvasId: 'game',
+  width: window.innerWidth,
+  height: 320,
+  backgroundColor: '#fff'
+});
+
+game.gravity = 9.8*6;
+
+
+/*
+*
+* yes, this is for the 10 seconds theme.
+* i mean, there'll be more to it than this.
+* but it would be sorta funny if this is all i did
+* that related to the theme.
+*
+*/
+setInterval(tick, 10000);
+
+function tick(){
+  console.log('10 seconds have passed');
+  map.generate();
+}
+
+
+/* set up keyboard */
+var keyboard = new Keyboard(game);
+var keysdown = keyboard.keysdown;
+
+
+/* create player */
+var player = new Player({
+  size: {
+    x: 40,
+    y: 60
+  },
+  position: {
+    x: game.width / 2 - 4,
+    y: game.height / 2 - 6,
+  },
+  color: '#fff',
+  speed: 8
+});
+
+var map = new Map(game, 3000, 320);
+map.generate();
+
+var camera = new Camera({
+  follow: player,
+  followPoint: { x: game.width / 2 },
+  viewport: { width: game.width, height: game.height },
+  map: map
+});
+
+game.on('update', function(interval){
+  camera.update();
+});
+
+game.on('draw', function(context){
+  map.draw(context, camera.position.x, camera.position.y)
+});
+
+game.on('pause', function(){});
+
+game.on('resume', function(){});
+
+player.addTo(game);
+
+player.on('update', function(interval){
+  this.input(keyboard.keysDown);
+  this.move();
+  this.velocity.x = 0;
+  this.velocity.y += 1.5;
+  this.boundaries();
+});
+
+player.on('draw', function(context){
+  context.save();
+  context.fillStyle = this.color;
+  context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
+  context.fillStyle = 'rgba(205,183,152,0.8)';
+  if (this.direction === 'right') {
+    context.fillRect(this.position.x+25 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+  } else {
+    context.fillRect(this.position.x+5 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+  }
+  context.restore();
+});
+
+},{"./player":3,"./camera":1,"./map":4,"crtrdg-gameloop":5,"crtrdg-keyboard":6,"crtrdg-mouse":7}],3:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -147,15 +241,17 @@ function Player(options){
     x: 0,
     y: 0
   };
+
+  this.direction = 'right';
   
-  this.friction = 0.3;
+  this.friction = 0.8;
   this.speed = options.speed;
   this.color = options.color;
 }
 
 Player.prototype.move = function(){
-  this.position.x += this.velocity.x;
-  this.position.y += this.velocity.y;
+  this.position.x += this.velocity.x * this.friction;
+  this.position.y += this.velocity.y * this.friction;
 };
 
 Player.prototype.boundaries = function(){
@@ -176,24 +272,27 @@ Player.prototype.boundaries = function(){
   }
 };
 
-Player.prototype.input = function(keyboard){
-  if ('A' in keyboard.keysDown){
+Player.prototype.input = function(keysdown){
+  if ('A' in keysdown){
+    this.direction = 'left';
     this.velocity.x = -this.speed;
   }
 
-  if ('D' in keyboard.keysDown){
+  if ('D' in keysdown){
+    this.direction = 'right';
     this.velocity.x = this.speed;
   }
 
-  if ('W' in keyboard.keysDown){
+  if ('W' in keysdown){
     this.velocity.y = -this.speed;
   }
 
-  if ('S' in keyboard.keysDown){
+  if ('S' in keysdown || '<space>' in keysdown){
     this.velocity.y = this.speed;
+    console.log('wut')
   }
 };
-},{"inherits":3,"crtrdg-entity":4}],5:[function(require,module,exports){
+},{"inherits":8,"crtrdg-entity":9}],4:[function(require,module,exports){
 randomColor = require('random-color');
 
 module.exports = Map;
@@ -239,135 +338,7 @@ Map.prototype.generate = function(callback){
 Map.prototype.draw = function(context, xView, yView){         
   context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
 }
-},{"random-color":6}],3:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],7:[function(require,module,exports){
-var Game = require('crtrdg-gameloop');
-var Keyboard = require('crtrdg-keyboard');
-var Mouse = require('crtrdg-mouse');
-var Player = require('./player');
-var Camera = require('./camera');
-var Map = require('./map');
-
-
-/* create game */
-var game = new Game({
-  canvasId: 'game',
-  width: window.innerWidth,
-  height: 320,
-  backgroundColor: '#fff'
-});
-
-
-/*
-*
-* yes, this is for the 10 seconds theme.
-* i mean, there'll be more to it than this.
-* but it would be sorta funny if this is all i did
-* that related to the theme.
-*
-*/
-setInterval(tick, 10000);
-
-function tick(){
-  console.log('10 seconds have passed');
-}
-
-
-/* set up keyboard */
-var keyboard = new Keyboard(game);
-var keysdown = keyboard.keysdown;
-
-
-/* create player */
-var player = new Player({
-  size: {
-    x: 8,
-    y: 12
-  },
-  position: {
-    x: game.width / 2 - 4,
-    y: game.height / 2 - 6,
-  },
-  color: '#fff',
-  speed: 3.5
-});
-
-var map = new Map(game, 3000, 320);
-map.generate();
-
-var camera = new Camera({
-  follow: player,
-  followPoint: { x: game.width / 2 },
-  viewport: { width: game.width, height: game.height },
-  map: map
-});
-
-game.on('update', function(interval){
-  camera.update();
-});
-
-game.on('draw', function(context){
-  map.draw(context, camera.position.x, camera.position.y)
-});
-
-game.on('pause', function(){});
-
-game.on('resume', function(){});
-
-player.addTo(game);
-
-player.on('update', function(interval){
-  this.input(keyboard);
-  this.move();
-  this.velocity.x = 0;
-  this.velocity.y = 0;
-  this.boundaries();
-});
-
-player.on('draw', function(context){
-  context.save();
-  context.fillStyle = this.color;
-  context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
-  context.restore();
-});
-
-},{"./player":2,"./camera":1,"./map":5,"crtrdg-mouse":8,"crtrdg-gameloop":9,"crtrdg-keyboard":10}],6:[function(require,module,exports){
-module.exports = color;
-
-function num(cap){
-  return Math.floor( Math.random() * cap );
-}
-
-function color(cap){
-  cap || ( cap = 255 );
-  return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
-}
-
-},{}],11:[function(require,module,exports){
+},{"random-color":10}],11:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -608,251 +579,43 @@ EventEmitter.prototype.listeners = function(type) {
 
 })(require("__browserify_process"))
 },{"__browserify_process":11}],8:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-
-module.exports = Mouse;
-inherits(Mouse, EventEmitter);
-
-function Mouse(game){
-  this.game = game || {};
-  this.el = game.canvas;
-  this.initializeListeners();
-}
-
-Mouse.prototype.initializeListeners = function(){
-  var self = this;
-
-  this.el.addEventListener('click', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('click', location);
-    })
-  });
-
-  this.el.addEventListener('mousedown', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousedown', location);
-    })
-  });
-
-  this.el.addEventListener('mouseup', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mouseup', location);
-    })
-  });
-
-  this.el.addEventListener('mousemove', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousemove', location);
-    })
-  });
-};
-
-Mouse.prototype.calculateOffset = function(e, callback){
-  var canvas = e.target;
-  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
-  var offsetY = canvas.offsetTop - canvas.scrollTop;
-
-  var location = {
-    x: e.pageX - offsetX,
-    y: e.pageY - offsetY
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
   };
-
-  callback(location);
-}
-
-},{"events":12,"inherits":3}],4:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-var aabb = require('aabb-2d');
-
-module.exports = Entity;
-inherits(Entity, EventEmitter);
-
-function Entity(){
-  return this;
-}
-
-Entity.prototype.addTo = function(game){
-  this.game = game || {};
-
-  if (!this.game.entities){
-    this.game.entities = [];
-  }
-
-  this.game.entities.push(this);
-  this.game.findEntity = this.findEntity;
-  this.initializeListeners();
-  this.setBoundingBox();
-
-  this.on('update', function(interval){
-    this.setBoundingBox();
-  });
-
-  this.exists = true;
-
-  return this;
-};
-
-Entity.prototype.initializeListeners = function(){
-  var self = this;
-  
-  this.findEntity(this, function(exists, entities, index){
-    if (exists){
-      self.game.on('update', function(interval){
-        self.emit('update', interval)
-      });
-
-      self.game.on('draw', function(context){
-        self.emit('draw', context);
-      });
-    }
-  });
-};
-
-Entity.prototype.remove = function(){
-  this.exists = false;
-  
-  this.removeAllListeners('update');
-  this.removeAllListeners('draw');
-
-  this.findEntity(this, function(exists, entities, index){
-    if (exists){
-      entities.splice(index, 1);
-    }
-  });
-};
-
-Entity.prototype.findEntity = function(entity, callback){
-  var entities;
-
-  if (this.game === undefined){
-    entities = this.entities;
-  } else {
-    entities = this.game.entities;
-  }
-
-  for (var i=0; i<entities.length; i++){
-    if (entities[i] === entity) {
-      callback(true, entities, i);
-    }
-  }
-};
-
-Entity.prototype.touches = function(entity){
-  if (entity.exists){
-    return this.boundingBox.intersects(entity.boundingBox);
-  }
-  else {
-    return false;
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
   }
 }
 
-Entity.prototype.setBoundingBox = function(){
-  this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
-};
+},{}],10:[function(require,module,exports){
+module.exports = color;
 
-},{"events":12,"inherits":3,"aabb-2d":13}],10:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-var vkey = require('vkey');
-
-module.exports = Keyboard;
-inherits(Keyboard, EventEmitter);
-
-function Keyboard(game){
-  this.game = game || {};
-  this.keysDown = {};
-  this.initializeListeners();
+function num(cap){
+  return Math.floor( Math.random() * cap );
 }
 
-Keyboard.prototype.initializeListeners = function(){
-  var self = this;
-
-  document.addEventListener('keydown', function(e){
-    self.emit('keydown', vkey[e.keyCode]);
-    self.keysDown[vkey[e.keyCode]] = true;
-
-    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
-      e.preventDefault();
-    }
-  }, false);
-
-  document.addEventListener('keyup', function(e){
-    self.emit('keyup', vkey[e.keyCode]);
-    delete self.keysDown[vkey[e.keyCode]];
-  }, false);
-};
-},{"events":12,"vkey":14,"inherits":3}],9:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var requestAnimationFrame = require('raf');
-var inherits = require('inherits');
-
-module.exports = Game;
-inherits(Game, EventEmitter);
-
-function Game(options){
-  this.canvas = document.getElementById(options.canvasId);
-  this.context = this.canvas.getContext('2d');
-  this.width = this.canvas.width = options.width;
-  this.height = this.canvas.height = options.height;
-  this.backgroundColor = options.backgroundColor;
-
-  if (options.maxListeners){
-    this.setMaxListeners(options.maxListeners);
-  } else {
-    this.setMaxListeners(0);
-  }
-
-  this.loop();
+function color(cap){
+  cap || ( cap = 255 );
+  return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
 }
 
-Game.prototype.loop = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-};
-
-Game.prototype.pause = function(){
-  this.ticker.pause();
-  this.emit('pause');
-};
-
-Game.prototype.resume = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-
-  this.emit('resume');
-};
-
-Game.prototype.update = function(interval){
-  if (this.currentScene){
-    this.sceneManager.update(interval);
-  }
-  this.emit('update', interval);
-};
-
-Game.prototype.draw = function(){
-  if (this.currentScene){
-    this.context.fillStyle = this.currentScene.backgroundColor;
-    this.sceneManager.draw(this.context);
-
-  } else {
-    this.context.fillStyle = this.backgroundColor;
-  }
-  this.context.fillRect(0, 0, this.width, this.height);
-  this.emit('draw', this.context)
-};
-},{"events":12,"inherits":3,"raf":15}],14:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function(){var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
   , isOSX = /OS X/.test(ua)
   , isOpera = /Opera/.test(ua)
@@ -991,7 +754,7 @@ for(i = 112; i < 136; ++i) {
 }
 
 })()
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 (function(){module.exports = raf
 
 var EE = require('events').EventEmitter
@@ -1045,7 +808,252 @@ raf.now = now
 
 
 })()
-},{"events":12}],13:[function(require,module,exports){
+},{"events":12}],5:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var requestAnimationFrame = require('raf');
+var inherits = require('inherits');
+
+module.exports = Game;
+inherits(Game, EventEmitter);
+
+function Game(options){
+  this.canvas = document.getElementById(options.canvasId);
+  this.context = this.canvas.getContext('2d');
+  this.width = this.canvas.width = options.width;
+  this.height = this.canvas.height = options.height;
+  this.backgroundColor = options.backgroundColor;
+
+  if (options.maxListeners){
+    this.setMaxListeners(options.maxListeners);
+  } else {
+    this.setMaxListeners(0);
+  }
+
+  this.loop();
+}
+
+Game.prototype.loop = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+};
+
+Game.prototype.pause = function(){
+  this.ticker.pause();
+  this.emit('pause');
+};
+
+Game.prototype.resume = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+
+  this.emit('resume');
+};
+
+Game.prototype.update = function(interval){
+  if (this.currentScene){
+    this.sceneManager.update(interval);
+  }
+  this.emit('update', interval);
+};
+
+Game.prototype.draw = function(){
+  if (this.currentScene){
+    this.context.fillStyle = this.currentScene.backgroundColor;
+    this.sceneManager.draw(this.context);
+
+  } else {
+    this.context.fillStyle = this.backgroundColor;
+  }
+  this.context.fillRect(0, 0, this.width, this.height);
+  this.emit('draw', this.context)
+};
+},{"events":12,"raf":14,"inherits":8}],6:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+var vkey = require('vkey');
+
+module.exports = Keyboard;
+inherits(Keyboard, EventEmitter);
+
+function Keyboard(game){
+  this.game = game || {};
+  this.keysDown = {};
+  this.initializeListeners();
+}
+
+Keyboard.prototype.initializeListeners = function(){
+  var self = this;
+
+  document.addEventListener('keydown', function(e){
+    self.emit('keydown', vkey[e.keyCode]);
+    self.keysDown[vkey[e.keyCode]] = true;
+
+    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
+      e.preventDefault();
+    }
+  }, false);
+
+  document.addEventListener('keyup', function(e){
+    self.emit('keyup', vkey[e.keyCode]);
+    delete self.keysDown[vkey[e.keyCode]];
+  }, false);
+};
+},{"events":12,"vkey":13,"inherits":8}],7:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+
+module.exports = Mouse;
+inherits(Mouse, EventEmitter);
+
+function Mouse(game){
+  this.game = game || {};
+  this.el = game.canvas;
+  this.initializeListeners();
+}
+
+Mouse.prototype.initializeListeners = function(){
+  var self = this;
+
+  this.el.addEventListener('click', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('click', location);
+    })
+  });
+
+  this.el.addEventListener('mousedown', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousedown', location);
+    })
+  });
+
+  this.el.addEventListener('mouseup', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mouseup', location);
+    })
+  });
+
+  this.el.addEventListener('mousemove', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousemove', location);
+    })
+  });
+};
+
+Mouse.prototype.calculateOffset = function(e, callback){
+  var canvas = e.target;
+  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
+  var offsetY = canvas.offsetTop - canvas.scrollTop;
+
+  var location = {
+    x: e.pageX - offsetX,
+    y: e.pageY - offsetY
+  };
+
+  callback(location);
+}
+
+},{"events":12,"inherits":8}],9:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+var aabb = require('aabb-2d');
+
+module.exports = Entity;
+inherits(Entity, EventEmitter);
+
+function Entity(){
+  return this;
+}
+
+Entity.prototype.addTo = function(game){
+  this.game = game || {};
+
+  if (!this.game.entities){
+    this.game.entities = [];
+  }
+
+  this.game.entities.push(this);
+  this.game.findEntity = this.findEntity;
+  this.initializeListeners();
+  this.setBoundingBox();
+
+  this.on('update', function(interval){
+    this.setBoundingBox();
+  });
+
+  this.exists = true;
+
+  return this;
+};
+
+Entity.prototype.initializeListeners = function(){
+  var self = this;
+  
+  this.findEntity(this, function(exists, entities, index){
+    if (exists){
+      self.game.on('update', function(interval){
+        self.emit('update', interval)
+      });
+
+      self.game.on('draw', function(context){
+        self.emit('draw', context);
+      });
+    }
+  });
+};
+
+Entity.prototype.remove = function(){
+  this.exists = false;
+  
+  this.removeAllListeners('update');
+  this.removeAllListeners('draw');
+
+  this.findEntity(this, function(exists, entities, index){
+    if (exists){
+      entities.splice(index, 1);
+    }
+  });
+};
+
+Entity.prototype.findEntity = function(entity, callback){
+  var entities;
+
+  if (this.game === undefined){
+    entities = this.entities;
+  } else {
+    entities = this.game.entities;
+  }
+
+  for (var i=0; i<entities.length; i++){
+    if (entities[i] === entity) {
+      callback(true, entities, i);
+    }
+  }
+};
+
+Entity.prototype.touches = function(entity){
+  if (entity.exists){
+    return this.boundingBox.intersects(entity.boundingBox);
+  }
+  else {
+    return false;
+  }
+}
+
+Entity.prototype.setBoundingBox = function(){
+  this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
+};
+
+},{"events":12,"aabb-2d":15,"inherits":8}],15:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2
@@ -4214,5 +4222,5 @@ if(typeof(exports) !== 'undefined') {
 })();
 
 })()
-},{}]},{},[7])
+},{}]},{},[2])
 ;

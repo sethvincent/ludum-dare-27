@@ -19,15 +19,17 @@ function Player(options){
     x: 0,
     y: 0
   };
+
+  this.direction = 'right';
   
-  this.friction = 0.3;
+  this.friction = 0.8;
   this.speed = options.speed;
   this.color = options.color;
 }
 
 Player.prototype.move = function(){
-  this.position.x += this.velocity.x;
-  this.position.y += this.velocity.y;
+  this.position.x += this.velocity.x * this.friction;
+  this.position.y += this.velocity.y * this.friction;
 };
 
 Player.prototype.boundaries = function(){
@@ -48,20 +50,23 @@ Player.prototype.boundaries = function(){
   }
 };
 
-Player.prototype.input = function(keyboard){
-  if ('A' in keyboard.keysDown){
+Player.prototype.input = function(keysdown){
+  if ('A' in keysdown){
+    this.direction = 'left';
     this.velocity.x = -this.speed;
   }
 
-  if ('D' in keyboard.keysDown){
+  if ('D' in keysdown){
+    this.direction = 'right';
     this.velocity.x = this.speed;
   }
 
-  if ('W' in keyboard.keysDown){
+  if ('W' in keysdown){
     this.velocity.y = -this.speed;
   }
 
-  if ('S' in keyboard.keysDown){
+  if ('S' in keysdown || '<space>' in keysdown){
     this.velocity.y = this.speed;
+    console.log('wut')
   }
 };

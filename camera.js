@@ -33,35 +33,29 @@ function Camera(options){
   this.viewportRect = new Rectangle(this.position.x, this.position.y, this.viewport.width, this.viewport.height);       
             
   this.worldRect = new Rectangle(this.position.x, this.position.y, this.map.width, this.map.height);
-  console.log(this)
 }
 
 Camera.prototype.update = function(){
   var following = this.following,
   followPoint = this.followPoint;
-  console.log(this.position)
   if (following != null){   
     if (followPoint.x !== null){  
       
       if(following.position.x - this.position.x + this.deadZone.x > this.viewport.width){
-        console.log('if 1') 
         this.position.x = following.position.x - (this.viewport.width - this.deadZone.x);
       }
 
       else if(following.position.x - this.deadZone.x < this.position.x){
-        console.log('else if 1')
         this.position.x = following.position.x - this.deadZone.x;
       }
     }
 
     if (followPoint.y !== null){
       if(following.position.y - this.position.y + this.deadZone.y > this.viewport.height){
-        console.log('if 2') 
         this.position.y = following.position.y - (this.viewport.height - this.deadZone.y);
       }
 
       else if(following.position.y - this.deadZone.y < this.position.y) {
-        console.log('else if 2') 
         this.position.y = following.position.y - this.deadZone.y;
       }
     }           

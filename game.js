@@ -14,6 +14,8 @@ var game = new Game({
   backgroundColor: '#fff'
 });
 
+game.gravity = 9.8*6;
+
 
 /*
 *
@@ -27,6 +29,7 @@ setInterval(tick, 10000);
 
 function tick(){
   console.log('10 seconds have passed');
+  map.generate();
 }
 
 
@@ -38,15 +41,15 @@ var keysdown = keyboard.keysdown;
 /* create player */
 var player = new Player({
   size: {
-    x: 8,
-    y: 12
+    x: 40,
+    y: 60
   },
   position: {
     x: game.width / 2 - 4,
     y: game.height / 2 - 6,
   },
   color: '#fff',
-  speed: 3.5
+  speed: 8
 });
 
 var map = new Map(game, 3000, 320);
@@ -74,10 +77,10 @@ game.on('resume', function(){});
 player.addTo(game);
 
 player.on('update', function(interval){
-  this.input(keyboard);
+  this.input(keyboard.keysDown);
   this.move();
   this.velocity.x = 0;
-  this.velocity.y = 0;
+  this.velocity.y += 1.5;
   this.boundaries();
 });
 
@@ -85,5 +88,11 @@ player.on('draw', function(context){
   context.save();
   context.fillStyle = this.color;
   context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
+  context.fillStyle = 'rgba(205,183,152,0.8)';
+  if (this.direction === 'right') {
+    context.fillRect(this.position.x+25 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+  } else {
+    context.fillRect(this.position.x+5 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+  }
   context.restore();
 });
