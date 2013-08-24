@@ -14,8 +14,6 @@ var game = new Game({
   backgroundColor: '#fff'
 });
 
-game.gravity = 9.8*6;
-
 
 /*
 *
