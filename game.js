@@ -4,9 +4,9 @@ var Mouse = require('crtrdg-mouse');
 
 var game = new Game({
   canvasId: 'game',
-  width: 800,
-  height: 400,
-  backgroundColor: '#ff1f1f'
+  width: window.innerWidth,
+  height: 320,
+  backgroundColor: '#fff'
 });
 
 

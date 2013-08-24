@@ -5,9 +5,9 @@ var Mouse = require('crtrdg-mouse');
 
 var game = new Game({
   canvasId: 'game',
-  width: 800,
-  height: 400,
-  backgroundColor: '#ff1f1f'
+  width: window.innerWidth,
+  height: 320,
+  backgroundColor: '#fff'
 });
 
 
@@ -277,186 +277,7 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":5}],4:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-
-module.exports = Mouse;
-inherits(Mouse, EventEmitter);
-
-function Mouse(game){
-  this.game = game || {};
-  this.el = game.canvas;
-  this.initializeListeners();
-}
-
-Mouse.prototype.initializeListeners = function(){
-  var self = this;
-
-  this.el.addEventListener('click', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('click', location);
-    })
-  });
-
-  this.el.addEventListener('mousedown', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousedown', location);
-    })
-  });
-
-  this.el.addEventListener('mouseup', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mouseup', location);
-    })
-  });
-
-  this.el.addEventListener('mousemove', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousemove', location);
-    })
-  });
-};
-
-Mouse.prototype.calculateOffset = function(e, callback){
-  var canvas = e.target;
-  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
-  var offsetY = canvas.offsetTop - canvas.scrollTop;
-
-  var location = {
-    x: e.pageX - offsetX,
-    y: e.pageY - offsetY
-  };
-
-  callback(location);
-}
-
-},{"events":6,"inherits":7}],7:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],3:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-var vkey = require('vkey');
-
-module.exports = Keyboard;
-inherits(Keyboard, EventEmitter);
-
-function Keyboard(game){
-  this.game = game || {};
-  this.keysDown = {};
-  this.initializeListeners();
-}
-
-Keyboard.prototype.initializeListeners = function(){
-  var self = this;
-
-  document.addEventListener('keydown', function(e){
-    self.emit('keydown', vkey[e.keyCode]);
-    self.keysDown[vkey[e.keyCode]] = true;
-
-    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
-      e.preventDefault();
-    }
-  }, false);
-
-  document.addEventListener('keyup', function(e){
-    self.emit('keyup', vkey[e.keyCode]);
-    delete self.keysDown[vkey[e.keyCode]];
-  }, false);
-};
-},{"events":6,"inherits":7,"vkey":8}],2:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var requestAnimationFrame = require('raf');
-var inherits = require('inherits');
-
-module.exports = Game;
-inherits(Game, EventEmitter);
-
-function Game(options){
-  this.canvas = document.getElementById(options.canvasId);
-  this.context = this.canvas.getContext('2d');
-  this.width = this.canvas.width = options.width;
-  this.height = this.canvas.height = options.height;
-  this.backgroundColor = options.backgroundColor;
-
-  if (options.maxListeners){
-    this.setMaxListeners(options.maxListeners);
-  } else {
-    this.setMaxListeners(0);
-  }
-
-  this.loop();
-}
-
-Game.prototype.loop = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-};
-
-Game.prototype.pause = function(){
-  this.ticker.pause();
-  this.emit('pause');
-};
-
-Game.prototype.resume = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-
-  this.emit('resume');
-};
-
-Game.prototype.update = function(interval){
-  if (this.currentScene){
-    this.sceneManager.update(interval);
-  }
-  this.emit('update', interval);
-};
-
-Game.prototype.draw = function(){
-  if (this.currentScene){
-    this.context.fillStyle = this.currentScene.backgroundColor;
-    this.sceneManager.draw(this.context);
-
-  } else {
-    this.context.fillStyle = this.backgroundColor;
-  }
-  this.context.fillRect(0, 0, this.width, this.height);
-  this.emit('draw', this.context)
-};
-},{"events":6,"inherits":7,"raf":9}],8:[function(require,module,exports){
+},{"__browserify_process":5}],7:[function(require,module,exports){
 (function(){var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
   , isOSX = /OS X/.test(ua)
   , isOpera = /Opera/.test(ua)
@@ -595,7 +416,7 @@ for(i = 112; i < 136; ++i) {
 }
 
 })()
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function(){module.exports = raf
 
 var EE = require('events').EventEmitter
@@ -649,5 +470,184 @@ raf.now = now
 
 
 })()
-},{"events":6}]},{},[1])
+},{"events":6}],2:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var requestAnimationFrame = require('raf');
+var inherits = require('inherits');
+
+module.exports = Game;
+inherits(Game, EventEmitter);
+
+function Game(options){
+  this.canvas = document.getElementById(options.canvasId);
+  this.context = this.canvas.getContext('2d');
+  this.width = this.canvas.width = options.width;
+  this.height = this.canvas.height = options.height;
+  this.backgroundColor = options.backgroundColor;
+
+  if (options.maxListeners){
+    this.setMaxListeners(options.maxListeners);
+  } else {
+    this.setMaxListeners(0);
+  }
+
+  this.loop();
+}
+
+Game.prototype.loop = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+};
+
+Game.prototype.pause = function(){
+  this.ticker.pause();
+  this.emit('pause');
+};
+
+Game.prototype.resume = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+
+  this.emit('resume');
+};
+
+Game.prototype.update = function(interval){
+  if (this.currentScene){
+    this.sceneManager.update(interval);
+  }
+  this.emit('update', interval);
+};
+
+Game.prototype.draw = function(){
+  if (this.currentScene){
+    this.context.fillStyle = this.currentScene.backgroundColor;
+    this.sceneManager.draw(this.context);
+
+  } else {
+    this.context.fillStyle = this.backgroundColor;
+  }
+  this.context.fillRect(0, 0, this.width, this.height);
+  this.emit('draw', this.context)
+};
+},{"events":6,"raf":8,"inherits":9}],3:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+var vkey = require('vkey');
+
+module.exports = Keyboard;
+inherits(Keyboard, EventEmitter);
+
+function Keyboard(game){
+  this.game = game || {};
+  this.keysDown = {};
+  this.initializeListeners();
+}
+
+Keyboard.prototype.initializeListeners = function(){
+  var self = this;
+
+  document.addEventListener('keydown', function(e){
+    self.emit('keydown', vkey[e.keyCode]);
+    self.keysDown[vkey[e.keyCode]] = true;
+
+    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
+      e.preventDefault();
+    }
+  }, false);
+
+  document.addEventListener('keyup', function(e){
+    self.emit('keyup', vkey[e.keyCode]);
+    delete self.keysDown[vkey[e.keyCode]];
+  }, false);
+};
+},{"events":6,"vkey":7,"inherits":9}],4:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+
+module.exports = Mouse;
+inherits(Mouse, EventEmitter);
+
+function Mouse(game){
+  this.game = game || {};
+  this.el = game.canvas;
+  this.initializeListeners();
+}
+
+Mouse.prototype.initializeListeners = function(){
+  var self = this;
+
+  this.el.addEventListener('click', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('click', location);
+    })
+  });
+
+  this.el.addEventListener('mousedown', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousedown', location);
+    })
+  });
+
+  this.el.addEventListener('mouseup', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mouseup', location);
+    })
+  });
+
+  this.el.addEventListener('mousemove', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousemove', location);
+    })
+  });
+};
+
+Mouse.prototype.calculateOffset = function(e, callback){
+  var canvas = e.target;
+  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
+  var offsetY = canvas.offsetTop - canvas.scrollTop;
+
+  var location = {
+    x: e.pageX - offsetX,
+    y: e.pageY - offsetY
+  };
+
+  callback(location);
+}
+
+},{"events":6,"inherits":9}],9:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}]},{},[1])
 ;

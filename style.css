@@ -7,13 +7,13 @@ body {
   font-weight: 300;
 }
 
-h1#title {
-  margin: 30px 0px;
-  text-align: center;
-  font-weight: 300;
+header {
+  height: 200px;
 }
 
 canvas#game {
   display: block;
   margin: 0px auto;
+  border-top: 1px solid #cfcfca;
+  border-bottom: 1px solid #cfcfca;
 }
