@@ -53,14 +53,15 @@ Player.prototype.boundaries = function(){
 };
 
 Player.prototype.input = function(keysdown){
+
   if ('A' in keysdown){
     this.direction = 'left';
-    this.velocity.x = -this.speed;
+    this.velocity.x = (this.scrunched) ? -this.speed / 2 : -this.speed;
   }
 
   if ('D' in keysdown){
     this.direction = 'right';
-    this.velocity.x = this.speed;
+    this.velocity.x = (this.scrunched) ? this.speed / 2 : this.speed;
   }
 
   if ('W' in keysdown || '<space>' in keysdown){

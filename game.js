@@ -35,6 +35,11 @@ function tick(){
 var keyboard = new Keyboard(game);
 var keysdown = keyboard.keysdown;
 
+keyboard.on('keyup', function(key){
+  if (key === 'S'){
+    player.scrunched = false;
+  }
+})
 
 /* create player */
 var player = new Player({
@@ -47,7 +52,7 @@ var player = new Player({
     y: game.height / 2 - 6,
   },
   color: '#fff',
-  speed: 8
+  speed: 11
 });
 
 var map = new Map(game, 3000, 320);
@@ -76,8 +81,8 @@ player.addTo(game);
 
 var unscrunched = {};
 player.on('update', function(interval){
-  this.scrunched = false;
   this.input(keyboard.keysDown);
+  console.log(this.velocity);
   this.move();
   this.velocity.x *= this.friction;
   this.velocity.y += 1.5;
@@ -102,7 +107,7 @@ player.on('draw', function(context){
     } else {
       context.fillRect(this.position.x - camera.position.x-5, this.position.y - camera.position.y+35, 10, 10);
     }
-    
+
   } else {
     context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
   
