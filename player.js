@@ -21,6 +21,7 @@ function Player(options){
   };
 
   this.direction = 'right';
+  this.scrunched = false;
   
   this.friction = 0.8;
   this.speed = options.speed;
@@ -70,6 +71,6 @@ Player.prototype.input = function(keysdown){
   }
 
   if ('S' in keysdown){
-    this.velocity.y = this.speed;
+    this.scrunched = true;
   }
 };

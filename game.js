@@ -74,7 +74,9 @@ game.on('resume', function(){});
 
 player.addTo(game);
 
+var unscrunched = {};
 player.on('update', function(interval){
+  this.scrunched = false;
   this.input(keyboard.keysDown);
   this.move();
   this.velocity.x *= this.friction;
@@ -84,13 +86,36 @@ player.on('update', function(interval){
 
 player.on('draw', function(context){
   context.save();
+
+  /* the body */
   context.fillStyle = this.color;
-  context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
-  context.fillStyle = 'rgba(205,183,152,0.8)';
-  if (this.direction === 'right') {
-    context.fillRect(this.position.x+25 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+
+  if(this.scrunched){
+    context.fillRect(this.position.x - camera.position.x-10, this.position.y - camera.position.y+30, this.size.x+20, this.size.y-30);
+
+    /* the eye */
+    context.fillStyle = 'rgba(205,183,152,0.8)';
+
+    /* direction of eye */
+    if (this.direction === 'right') {
+      context.fillRect(this.position.x+this.size.x-5 - camera.position.x, this.position.y - camera.position.y+35, 10, 10);
+    } else {
+      context.fillRect(this.position.x - camera.position.x-5, this.position.y - camera.position.y+35, 10, 10);
+    }
+    
   } else {
-    context.fillRect(this.position.x+5 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+    context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
+  
+    /* the eye */
+    context.fillStyle = 'rgba(205,183,152,0.8)';
+
+    /* direction of eye */
+    if (this.direction === 'right') {
+      context.fillRect(this.position.x+this.size.x-15 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+    } else {
+      context.fillRect(this.position.x+5 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+    }
   }
+
   context.restore();
 });
