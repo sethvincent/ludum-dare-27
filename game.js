@@ -49,12 +49,12 @@ var player = new Player({
   speed: 3.5
 });
 
-var map = new Map(game, 3000, 3000);
+var map = new Map(game, 3000, 320);
 map.generate();
 
 var camera = new Camera({
   follow: player,
-  followPoint: { x: game.width / 2, y: game.height / 2 },
+  followPoint: { x: game.width / 2 },
   viewport: { width: game.width, height: game.height },
   map: map
 });

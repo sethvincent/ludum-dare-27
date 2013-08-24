@@ -43,8 +43,8 @@ Player.prototype.boundaries = function(){
     this.position.y = 0;
   }
 
-  if (this.position.y >= 3000 - this.size.y){
-    this.position.y = 3000 - this.size.y;
+  if (this.position.y >= 320 - this.size.y){
+    this.position.y = 320 - this.size.y;
   }
 };
 
