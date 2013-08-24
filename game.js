@@ -18,13 +18,13 @@ var game = new Game({
 * that related to the theme.
 *
 */
-
 setInterval(tick, 10000);
 
 function tick(){
   console.log('10 seconds have passed');
 }
 
+/* set up keyboard */
 var keyboard = new Keyboard(game);
 var keysdown = keyboard.keysdown;
 
