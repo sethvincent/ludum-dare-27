@@ -164,7 +164,7 @@ var keysdown = keyboard.keysdown;
 var player = new Player({
   size: {
     x: 40,
-    y: 60
+    y: 55
   },
   position: {
     x: game.width / 2 - 4,
@@ -219,126 +219,7 @@ player.on('draw', function(context){
   context.restore();
 });
 
-},{"./player":3,"./camera":1,"./map":4,"crtrdg-gameloop":5,"crtrdg-keyboard":6,"crtrdg-mouse":7}],3:[function(require,module,exports){
-var inherits = require('inherits');
-var Entity = require('crtrdg-entity');
-
-module.exports = Player;
-inherits(Player, Entity);
-
-function Player(options){
-  this.position = { 
-    x: options.position.x, 
-    y: options.position.y 
-  };
-
-  this.size = {
-    x: options.size.x,
-    y: options.size.y
-  };
-
-  this.velocity = {
-    x: 0,
-    y: 0
-  };
-
-  this.direction = 'right';
-  
-  this.friction = 0.8;
-  this.speed = options.speed;
-  this.color = options.color;
-}
-
-Player.prototype.move = function(){
-  this.position.x += this.velocity.x * this.friction;
-  this.position.y += this.velocity.y * this.friction;
-};
-
-Player.prototype.boundaries = function(){
-  if (this.position.x <= 0){
-    this.position.x = 0;
-  }
-
-  if (this.position.x >= 3000 - this.size.x){
-    this.position.x = 3000 - this.size.x;
-  }
-
-  if (this.position.y <= 0){
-    this.position.y = 0;
-  }
-
-  if (this.position.y >= 320 - this.size.y){
-    this.position.y = 320 - this.size.y;
-  }
-};
-
-Player.prototype.input = function(keysdown){
-  if ('A' in keysdown){
-    this.direction = 'left';
-    this.velocity.x = -this.speed;
-  }
-
-  if ('D' in keysdown){
-    this.direction = 'right';
-    this.velocity.x = this.speed;
-  }
-
-  if ('W' in keysdown){
-    this.velocity.y = -this.speed;
-  }
-
-  if ('S' in keysdown || '<space>' in keysdown){
-    this.velocity.y = this.speed;
-    console.log('wut')
-  }
-};
-},{"inherits":8,"crtrdg-entity":9}],4:[function(require,module,exports){
-randomColor = require('random-color');
-
-module.exports = Map;
-
-function Map(game, width, height){
-  this.game = game;
-  this.width = width;
-  this.height = height;
-  this.image = null;
-}
-
-Map.prototype.generate = function(callback){
-  var ctx = document.createElement('canvas').getContext('2d');
-
-  ctx.canvas.width = this.width;
-  ctx.canvas.height = this.height;
-
-  var rows = parseInt(this.width/20);
-  var columns = parseInt(this.height/20);
-
-  ctx.save();     
-  for (var x = 0, i = 0; i < rows; x+=20, i++) {
-    for (var y = 0, j=0; j < columns; y+=20, j++) { 
-      ctx.beginPath();      
-      ctx.fillStyle = randomColor()                   
-      ctx.rect(x, y, 19, 19);        
-      ctx.fill();
-      ctx.closePath();
-    }
-    
-  }   
-  ctx.restore();  
-  
-  // store the generate map as this image texture
-  this.image = new Image();
-  this.image.src = ctx.canvas.toDataURL("image/png");         
-  
-  // clear context
-  ctx = null;
-}
-
-// draw the map adjusted to camera
-Map.prototype.draw = function(context, xView, yView){         
-  context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
-}
-},{"random-color":10}],11:[function(require,module,exports){
+},{"./player":3,"./camera":1,"./map":4,"crtrdg-keyboard":5,"crtrdg-gameloop":6,"crtrdg-mouse":7}],8:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -392,7 +273,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],12:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -578,7 +459,131 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":11}],8:[function(require,module,exports){
+},{"__browserify_process":8}],3:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Player;
+inherits(Player, Entity);
+
+function Player(options){
+  this.position = { 
+    x: options.position.x, 
+    y: options.position.y 
+  };
+
+  this.size = {
+    x: options.size.x,
+    y: options.size.y
+  };
+
+  this.velocity = {
+    x: 0,
+    y: 0
+  };
+
+  this.direction = 'right';
+  
+  this.friction = 0.8;
+  this.speed = options.speed;
+  this.color = options.color;
+}
+
+Player.prototype.move = function(){
+  this.position.x += this.velocity.x * this.friction;
+  this.position.y += this.velocity.y * this.friction;
+};
+
+Player.prototype.boundaries = function(){
+  if (this.position.x <= 0){
+    this.position.x = 0;
+  }
+
+  if (this.position.x >= 3000 - this.size.x){
+    this.position.x = 3000 - this.size.x;
+  }
+
+  if (this.position.y <= 0){
+    this.position.y = 0;
+  }
+
+  if (this.position.y >= 320 - this.size.y){
+    this.position.y = 320 - this.size.y;
+    this.jumping = false;
+  }
+};
+
+Player.prototype.input = function(keysdown){
+  if ('A' in keysdown){
+    this.direction = 'left';
+    this.velocity.x = -this.speed;
+  }
+
+  if ('D' in keysdown){
+    this.direction = 'right';
+    this.velocity.x = this.speed;
+  }
+
+  if ('W' in keysdown|| '<space>' in keysdown){
+    if (!this.jumping){
+      this.jumping = true;
+      this.velocity.y = -15;
+    }
+    
+    console.log('wut')
+  }
+
+  if ('S' in keysdown){
+    this.velocity.y = this.speed;
+  }
+};
+},{"inherits":10,"crtrdg-entity":11}],4:[function(require,module,exports){
+randomColor = require('random-color');
+
+module.exports = Map;
+
+function Map(game, width, height){
+  this.game = game;
+  this.width = width;
+  this.height = height;
+  this.image = null;
+}
+
+Map.prototype.generate = function(callback){
+  var ctx = document.createElement('canvas').getContext('2d');
+
+  ctx.canvas.width = this.width;
+  ctx.canvas.height = this.height;
+
+  var rows = parseInt(this.width/16);
+  var columns = parseInt(this.height/16);
+
+  ctx.save();     
+  for (var x = 0, i = 0; i < rows; x+=16, i++) {
+    for (var y = 0, j=0; j < columns; y+=16, j++) { 
+      ctx.beginPath();      
+      ctx.fillStyle = randomColor()                   
+      ctx.rect(x, y, 15, 15);        
+      ctx.fill();
+      ctx.closePath();
+    }
+    
+  }   
+  ctx.restore();  
+  
+  // store the generate map as this image texture
+  this.image = new Image();
+  this.image.src = ctx.canvas.toDataURL("image/png");         
+  
+  // clear context
+  ctx = null;
+}
+
+// draw the map adjusted to camera
+Map.prototype.draw = function(context, xView, yView){         
+  context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
+}
+},{"random-color":12}],10:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -603,7 +608,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports = color;
 
 function num(cap){
@@ -754,61 +759,38 @@ for(i = 112; i < 136; ++i) {
 }
 
 })()
-},{}],14:[function(require,module,exports){
-(function(){module.exports = raf
+},{}],5:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+var vkey = require('vkey');
 
-var EE = require('events').EventEmitter
-  , global = typeof window === 'undefined' ? this : window
-  , now = global.performance && global.performance.now ? function() {
-    return performance.now()
-  } : Date.now || function () {
-    return +new Date()
-  }
+module.exports = Keyboard;
+inherits(Keyboard, EventEmitter);
 
-var _raf =
-  global.requestAnimationFrame ||
-  global.webkitRequestAnimationFrame ||
-  global.mozRequestAnimationFrame ||
-  global.msRequestAnimationFrame ||
-  global.oRequestAnimationFrame ||
-  (global.setImmediate ? function(fn, el) {
-    setImmediate(fn)
-  } :
-  function(fn, el) {
-    setTimeout(fn, 0)
-  })
-
-function raf(el) {
-  var now = raf.now()
-    , ee = new EE
-
-  ee.pause = function() { ee.paused = true }
-  ee.resume = function() { ee.paused = false }
-
-  _raf(iter, el)
-
-  return ee
-
-  function iter(timestamp) {
-    var _now = raf.now()
-      , dt = _now - now
-    
-    now = _now
-
-    ee.emit('data', dt)
-
-    if(!ee.paused) {
-      _raf(iter, el)
-    }
-  }
+function Keyboard(game){
+  this.game = game || {};
+  this.keysDown = {};
+  this.initializeListeners();
 }
 
-raf.polyfill = _raf
-raf.now = now
+Keyboard.prototype.initializeListeners = function(){
+  var self = this;
 
+  document.addEventListener('keydown', function(e){
+    self.emit('keydown', vkey[e.keyCode]);
+    self.keysDown[vkey[e.keyCode]] = true;
 
-})()
-},{"events":12}],5:[function(require,module,exports){
+    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
+      e.preventDefault();
+    }
+  }, false);
+
+  document.addEventListener('keyup', function(e){
+    self.emit('keyup', vkey[e.keyCode]);
+    delete self.keysDown[vkey[e.keyCode]];
+  }, false);
+};
+},{"events":9,"vkey":13,"inherits":10}],6:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var requestAnimationFrame = require('raf');
 var inherits = require('inherits');
@@ -877,38 +859,7 @@ Game.prototype.draw = function(){
   this.context.fillRect(0, 0, this.width, this.height);
   this.emit('draw', this.context)
 };
-},{"events":12,"raf":14,"inherits":8}],6:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-var vkey = require('vkey');
-
-module.exports = Keyboard;
-inherits(Keyboard, EventEmitter);
-
-function Keyboard(game){
-  this.game = game || {};
-  this.keysDown = {};
-  this.initializeListeners();
-}
-
-Keyboard.prototype.initializeListeners = function(){
-  var self = this;
-
-  document.addEventListener('keydown', function(e){
-    self.emit('keydown', vkey[e.keyCode]);
-    self.keysDown[vkey[e.keyCode]] = true;
-
-    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
-      e.preventDefault();
-    }
-  }, false);
-
-  document.addEventListener('keyup', function(e){
-    self.emit('keyup', vkey[e.keyCode]);
-    delete self.keysDown[vkey[e.keyCode]];
-  }, false);
-};
-},{"events":12,"vkey":13,"inherits":8}],7:[function(require,module,exports){
+},{"events":9,"raf":14,"inherits":10}],7:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -962,7 +913,61 @@ Mouse.prototype.calculateOffset = function(e, callback){
   callback(location);
 }
 
-},{"events":12,"inherits":8}],9:[function(require,module,exports){
+},{"events":9,"inherits":10}],14:[function(require,module,exports){
+(function(){module.exports = raf
+
+var EE = require('events').EventEmitter
+  , global = typeof window === 'undefined' ? this : window
+  , now = global.performance && global.performance.now ? function() {
+    return performance.now()
+  } : Date.now || function () {
+    return +new Date()
+  }
+
+var _raf =
+  global.requestAnimationFrame ||
+  global.webkitRequestAnimationFrame ||
+  global.mozRequestAnimationFrame ||
+  global.msRequestAnimationFrame ||
+  global.oRequestAnimationFrame ||
+  (global.setImmediate ? function(fn, el) {
+    setImmediate(fn)
+  } :
+  function(fn, el) {
+    setTimeout(fn, 0)
+  })
+
+function raf(el) {
+  var now = raf.now()
+    , ee = new EE
+
+  ee.pause = function() { ee.paused = true }
+  ee.resume = function() { ee.paused = false }
+
+  _raf(iter, el)
+
+  return ee
+
+  function iter(timestamp) {
+    var _now = raf.now()
+      , dt = _now - now
+    
+    now = _now
+
+    ee.emit('data', dt)
+
+    if(!ee.paused) {
+      _raf(iter, el)
+    }
+  }
+}
+
+raf.polyfill = _raf
+raf.now = now
+
+
+})()
+},{"events":9}],11:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var aabb = require('aabb-2d');
@@ -1053,7 +1058,7 @@ Entity.prototype.setBoundingBox = function(){
   this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
 };
 
-},{"events":12,"aabb-2d":15,"inherits":8}],15:[function(require,module,exports){
+},{"events":9,"aabb-2d":15,"inherits":10}],15:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2

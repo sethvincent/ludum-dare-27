@@ -42,7 +42,7 @@ var keysdown = keyboard.keysdown;
 var player = new Player({
   size: {
     x: 40,
-    y: 60
+    y: 55
   },
   position: {
     x: game.width / 2 - 4,
