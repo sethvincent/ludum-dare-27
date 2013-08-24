@@ -14,6 +14,8 @@ header {
 canvas#game {
   display: block;
   margin: 0px auto;
-  border-top: 1px solid #cfcfca;
-  border-bottom: 1px solid #cfcfca;
+  border-top: 1px solid #eaeae2;
+  border-bottom: 1px solid #eaeae2;
+  width: 100%;
+  height: 320px;
 }
