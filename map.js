@@ -22,7 +22,7 @@ Map.prototype.generate = function(callback){
   for (var x = 0, i = 0; i < rows; x+=16, i++) {
     for (var y = 0, j=0; j < columns; y+=16, j++) { 
       ctx.beginPath();      
-      ctx.fillStyle = randomColor()                   
+      ctx.fillStyle = randomColor(125)                   
       ctx.rect(x, y, 15, 15);        
       ctx.fill();
       ctx.closePath();

@@ -79,10 +79,8 @@ game.on('resume', function(){});
 
 player.addTo(game);
 
-var unscrunched = {};
 player.on('update', function(interval){
   this.input(keyboard.keysDown);
-  console.log(this.velocity);
   this.move();
   this.velocity.x *= this.friction;
   this.velocity.y += 1.5;
@@ -99,7 +97,7 @@ player.on('draw', function(context){
     context.fillRect(this.position.x - camera.position.x-10, this.position.y - camera.position.y+30, this.size.x+20, this.size.y-30);
 
     /* the eye */
-    context.fillStyle = 'rgba(205,183,152,0.8)';
+    context.fillStyle = '#ccc';
 
     /* direction of eye */
     if (this.direction === 'right') {
@@ -112,7 +110,7 @@ player.on('draw', function(context){
     context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
   
     /* the eye */
-    context.fillStyle = 'rgba(205,183,152,0.8)';
+    context.fillStyle = '#ccc';
 
     /* direction of eye */
     if (this.direction === 'right') {
