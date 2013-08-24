@@ -159,3 +159,26 @@ levelOne.on('start', function(){
 
 levelManager.set(levelOne);
 
+
+
+/* text utilities */
+
+function Text(options){
+  this.el = document.querySelector(options.el);
+
+  for (var style in options.styles){
+    this.el.style[style] = options.styles[style];
+  }
+
+  if (options.html) {
+    this.update(options.html);
+  }
+}
+
+Text.prototype.update = function update(text){
+  this.el.innerHTML = text;
+}
+
+Text.prototype.empty = function set(text){
+  this.el.innerHTML = '';
+}
