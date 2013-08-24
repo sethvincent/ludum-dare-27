@@ -1,7 +1,9 @@
 var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
-var Player = require('./player')
+var Player = require('./player');
+var Camera = require('./camera');
+var Map = require('./map');
 
 var game = new Game({
   canvasId: 'game',
@@ -25,17 +27,10 @@ function tick(){
   console.log('10 seconds have passed');
 }
 
+
 /* set up keyboard */
 var keyboard = new Keyboard(game);
 var keysdown = keyboard.keysdown;
-
-game.on('update', function(interval){});
-
-game.on('draw', function(context){});
-
-game.on('pause', function(){});
-
-game.on('resume', function(){});
 
 
 /* create player */
@@ -45,14 +40,35 @@ var player = new Player({
     y: 12
   },
   position: {
-    x: game.width / 2 - 5,
-    y: game.height / 2 - 5,
+    x: game.width / 2 - 4,
+    y: game.height / 2 - 6,
   },
   color: '#cfcfc2',
-  speed: 5
+  speed: 3.5
 });
 
-player.visible = true;
+var map = new Map(game, 3000, 3000);
+map.generate();
+
+var camera = new Camera({
+  follow: player,
+  followPoint: { x: game.width / 2, y: game.height / 2 },
+  viewport: { width: game.width, height: game.height },
+  map: map
+});
+
+game.on('update', function(interval){
+  camera.update();
+});
+
+game.on('draw', function(context){
+  map.draw(context, camera.position.x, camera.position.y)
+});
+
+game.on('pause', function(){});
+
+game.on('resume', function(){});
+
 player.addTo(game);
 
 player.on('update', function(interval){
@@ -64,8 +80,8 @@ player.on('update', function(interval){
 });
 
 player.on('draw', function(context){
-  if (player.visible){
-    context.fillStyle = this.color;
-    context.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);    
-  }
+  context.save();
+  context.fillStyle = this.color;
+  context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
+  context.restore();
 });

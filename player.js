@@ -35,16 +35,16 @@ Player.prototype.boundaries = function(){
     this.position.x = 0;
   }
 
-  if (this.position.x >= this.game.width - this.size.x){
-    this.position.x = this.game.width - this.size.x;
+  if (this.position.x >= 3000 - this.size.x){
+    this.position.x = 3000 - this.size.x;
   }
 
   if (this.position.y <= 0){
     this.position.y = 0;
   }
 
-  if (this.position.y >= this.game.height - this.size.y){
-    this.position.y = this.game.height - this.size.y;
+  if (this.position.y >= 3000 - this.size.y){
+    this.position.y = 3000 - this.size.y;
   }
 };
 
