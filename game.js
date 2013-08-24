@@ -1,6 +1,10 @@
 var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
+var LevelManager = require('crtrdg-scene');
+var goals = require('crtrdg-goal')(game);
+var Inventory = require('./inventory');
+var Item = require('./item');
 var Player = require('./player');
 var Camera = require('./camera');
 var Map = require('./map');
@@ -11,8 +15,10 @@ var game = new Game({
   canvasId: 'game',
   width: window.innerWidth,
   height: 320,
-  backgroundColor: '#fff'
+  backgroundColor: '#000'
 });
+
+var levelManager = new LevelManager(game);
 
 
 /*
@@ -123,3 +129,33 @@ player.on('draw', function(context){
 
   context.restore();
 });
+
+
+/*
+*
+* LEVEL ONE
+*
+*/
+
+var levelOne = levelManager.create({
+  name: 'level one'
+});
+
+levelOne.goal = goals.create({
+  name: 'level one goal'
+});
+
+levelOne.goal.on('active', function(){
+  console.log(this.name, 'active')
+});
+
+levelOne.goal.on('met', function(){
+  levelManager.set(levelTwo);
+});
+
+levelOne.on('start', function(){
+  goals.set(levelOne.goal);
+});
+
+levelManager.set(levelOne);
+
