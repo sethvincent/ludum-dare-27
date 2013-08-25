@@ -18,6 +18,8 @@ var game = new Game({
   backgroundColor: '#000'
 });
 
+game.paused = false;
+
 var levelManager = new LevelManager(game);
 
 
@@ -45,7 +47,28 @@ keyboard.on('keyup', function(key){
   if (key === 'S'){
     player.scrunched = false;
   }
-})
+});
+
+keyboard.on('keydown', function(key){
+  if (key === '<space>' && game.currentScene.name === 'menu'){
+    levelManager.set(levelOne);
+    game.resume();
+  }
+
+  if (key === 'P'){
+    console.log(game.paused)
+    if (!game.paused){
+      game.pause();
+      player.visible = false;
+      game.previousScene = game.currentScene;
+      levelManager.set(pauseMenu);
+    } else {
+      game.resume();
+      player.visible = true;
+      levelManager.set(game.previousScene);
+    }
+  }
+});
 
 /* create player */
 var player = new Player({
@@ -95,39 +118,79 @@ player.on('update', function(interval){
 });
 
 player.on('draw', function(context){
-  context.save();
+  if (player.visible){
+    context.save();
 
-  /* the body */
-  context.fillStyle = this.color;
+    /* the body */
+    context.fillStyle = this.color;
 
-  if(this.scrunched){
-    context.fillRect(this.position.x - camera.position.x-10, this.position.y - camera.position.y+30, this.size.x+20, this.size.y-30);
+    if(this.scrunched){
+      context.fillRect(this.position.x - camera.position.x-10, this.position.y - camera.position.y+30, this.size.x+20, this.size.y-30);
 
-    /* the eye */
-    context.fillStyle = '#ccc';
+      /* the eye */
+      context.fillStyle = '#ccc';
 
-    /* direction of eye */
-    if (this.direction === 'right') {
-      context.fillRect(this.position.x+this.size.x-5 - camera.position.x, this.position.y - camera.position.y+35, 10, 10);
+      /* direction of eye */
+      if (this.direction === 'right') {
+        context.fillRect(this.position.x+this.size.x-5 - camera.position.x, this.position.y - camera.position.y+35, 10, 10);
+      } else {
+        context.fillRect(this.position.x - camera.position.x-5, this.position.y - camera.position.y+35, 10, 10);
+      }
+
     } else {
-      context.fillRect(this.position.x - camera.position.x-5, this.position.y - camera.position.y+35, 10, 10);
+      context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
+    
+      /* the eye */
+      context.fillStyle = '#ccc';
+
+      /* direction of eye */
+      if (this.direction === 'right') {
+        context.fillRect(this.position.x+this.size.x-15 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+      } else {
+        context.fillRect(this.position.x+5 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
+      }
     }
 
-  } else {
-    context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
-  
-    /* the eye */
-    context.fillStyle = '#ccc';
-
-    /* direction of eye */
-    if (this.direction === 'right') {
-      context.fillRect(this.position.x+this.size.x-15 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
-    } else {
-      context.fillRect(this.position.x+5 - camera.position.x, this.position.y+5 - camera.position.y, 10, 10);
-    }
+    context.restore();
   }
+});
 
-  context.restore();
+
+/*
+*
+* MAIN MENU
+*
+*/
+
+var menu = levelManager.create({
+  name: 'menu',
+  backgroundColor: '#ffffff'
+});
+
+menu.on('start', function(){
+  console.log('menu screen')
+  player.visible = false;
+  game.pause();
+});
+
+// set main menu as first screen
+levelManager.set(menu);
+
+
+
+/*
+*
+* PAUSE MENU
+*
+*/
+
+var pauseMenu = levelManager.create({
+  name: 'pause menu',
+  backgroundColor: 'blue'
+});
+
+pauseMenu.on('start', function(){
+
 });
 
 
@@ -137,8 +200,23 @@ player.on('draw', function(context){
 *
 */
 
+var pizza = new Item({
+  name: 'pizza',
+  color: '#000',
+  position: {
+    x: 2000,
+    y: 100
+  }
+});
+
+pizza.on('draw', function(c){
+  c.fillStyle = this.color;
+  c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
+});
+
 var levelOne = levelManager.create({
-  name: 'level one'
+  name: 'level one',
+  backgroundColor: '#000'
 });
 
 levelOne.goal = goals.create({
@@ -154,11 +232,13 @@ levelOne.goal.on('met', function(){
 });
 
 levelOne.on('start', function(){
+  pizza.addTo(game);
+  player.visible = true;
   goals.set(levelOne.goal);
 });
 
-levelManager.set(levelOne);
-
+levelOne.on('draw', function(context){
+});
 
 
 /* text utilities */

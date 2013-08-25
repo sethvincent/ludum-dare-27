@@ -15,14 +15,14 @@ Map.prototype.generate = function(callback){
   ctx.canvas.width = this.width;
   ctx.canvas.height = this.height;
 
-  var rows = parseInt(this.width/16);
-  var columns = parseInt(this.height/16);
+  var rows = parseInt(this.width/16+1);
+  var columns = parseInt(this.height/16+1);
 
   ctx.save();     
   for (var x = 0, i = 0; i < rows; x+=16, i++) {
     for (var y = 0, j=0; j < columns; y+=16, j++) { 
       ctx.beginPath();      
-      ctx.fillStyle = randomColor(125)                   
+      ctx.fillStyle = randomColor(155);                
       ctx.rect(x, y, 15, 15);        
       ctx.fill();
       ctx.closePath();

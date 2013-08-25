@@ -12,7 +12,8 @@
     "inherits": "~2.0.0",
     "random-color": "0.0.0",
     "crtrdg-goal": "0.0.0",
-    "crtrdg-scene": "0.0.2"
+    "crtrdg-scene": "0.0.2",
+    "element-class": "~0.1.0"
   },
   "devDependencies": {
     "beefy": "~0.4.0",

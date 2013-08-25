@@ -13,14 +13,9 @@ function Item(options){
   };
 
   this.size = {
-    x: 5,
-    y: 5
+    x: 50,
+    y: 50
   };
 
   this.color = options.color;
-
-  this.on('draw', function(context){
-    context.fillStyle = this.color;
-    context.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);   
-  });
 }

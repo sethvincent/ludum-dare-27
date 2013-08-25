@@ -64,7 +64,7 @@ Player.prototype.input = function(keysdown){
     this.velocity.x = (this.scrunched) ? this.speed / 2 : this.speed;
   }
 
-  if ('W' in keysdown || '<space>' in keysdown){
+  if ('W' in keysdown){
     if (!this.jumping){
       this.jumping = true;
       this.velocity.y = -15;
