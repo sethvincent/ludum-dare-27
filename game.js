@@ -1,7 +1,7 @@
 var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
-var LevelManager = require('crtrdg-scene');
+var Levels = require('crtrdg-scene');
 var Goals = require('crtrdg-goal');
 var Inventory = require('./inventory');
 var Item = require('./item');
@@ -21,7 +21,7 @@ var game = new Game({
 game.paused = false;
 
 game.over = function(){
-  levelManager.set(gameOver);
+  levels.set(gameOver);
 };
 
 
@@ -44,7 +44,7 @@ game.on('pause', function(){});
 game.on('resume', function(){});
 
 var goals = new Goals(game);
-var levelManager = new LevelManager(game);
+var levels = new Levels(game);
 
 
 /*
@@ -55,7 +55,7 @@ var levelManager = new LevelManager(game);
 * that related to the theme.
 *
 */
-
+var tickStarted = false;
 function tick(){
    setTimeout(function(){
 
@@ -68,6 +68,7 @@ function tick(){
   }, 10000);
 }
 
+
 /*
 *
 * KEYBOARD
@@ -77,13 +78,6 @@ function tick(){
 var keyboard = new Keyboard(game);
 var keysdown = keyboard.keysdown;
 
-keyboard.on('keyup', function(key){
-  if (key === 'S'){
-    player.scrunched = false;
-    player.velocity.y = -5;
-  }
-});
-
 keyboard.on('keydown', function(key){
   if (key === 'S'){
     if (!player.scrunched){
@@ -92,24 +86,15 @@ keyboard.on('keydown', function(key){
   }
 
   if (key === '<space>' && game.currentScene.name === 'menu'){
-    levelManager.set(levelOne);
+    levels.set(levelOne);
     game.resume();
   }
+});
 
-  if (key === 'P'){
-    console.log(game.paused)
-    if (!game.paused){
-      game.pause();
-      game.paused = true;
-      player.visible = false;
-      game.previousScene = game.currentScene;
-      levelManager.set(pauseMenu);
-    } else {
-      game.resume();
-      game.paused = false;
-      player.visible = true;
-      levelManager.set(game.previousScene);
-    }
+keyboard.on('keyup', function(key){
+  if (key === 'S'){
+    player.scrunched = false;
+    player.velocity.y = -5;
   }
 });
 
@@ -184,16 +169,21 @@ player.on('draw', function(context){
 });
 
 player.tick = function(){
-  if (this.health <= 0){
-    player.kill();
-  } else {
+  if (this.health > 0){
     this.setHealth(-1);
+  } else {
+    player.kill();
   }
 };
 
 player.setHealth = function(n){
   this.health += n;
   health.update(this.health);
+}
+
+player.setCoins = function(n){
+  this.coins += n;
+  coins.update(this.coins);
 }
 
 player.kill = function(){
@@ -225,7 +215,7 @@ var camera = new Camera({
 *
 */
 
-var menu = levelManager.create({
+var menu = levels.create({
   name: 'menu',
   backgroundColor: '#ffffff'
 });
@@ -237,7 +227,7 @@ menu.on('start', function(){
 });
 
 // set main menu as first screen
-levelManager.set(menu);
+levels.set(menu);
 
 
 /*
@@ -246,7 +236,7 @@ levelManager.set(menu);
 *
 */
 
-var gameOver = levelManager.create({
+var gameOver = levels.create({
   name: 'game over',
   backgroundColor: '#000'
 });
@@ -264,7 +254,7 @@ gameOver.on('start', function(){
 *
 */
 
-var pauseMenu = levelManager.create({
+var pauseMenu = levels.create({
   name: 'pause menu',
   backgroundColor: 'blue'
 });
@@ -290,11 +280,12 @@ var pizza = new Item({
 });
 
 pizza.on('draw', function(c){
+  console.log('still drawing')
   c.fillStyle = this.color;
   c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
 });
 
-var levelOne = levelManager.create({
+var levelOne = levels.create({
   name: 'level one',
   backgroundColor: '#000'
 });
@@ -308,19 +299,42 @@ levelOne.goal.on('active', function(){
 });
 
 levelOne.goal.on('met', function(){
-  levelManager.set(levelTwo);
+  levels.set(levelTwo);
 });
 
 levelOne.on('start', function(){
-  tick();
+  if (!tickStarted){
+    tick();
+    tickStarted = true;
+  }
   pizza.addTo(game);
   player.visible = true;
   goals.set(levelOne.goal);
 });
 
+levelOne.on('update', function(){
+  if(player.touches(pizza)){
+    console.log('you touched pizza!');
+    goals.met(levelOne.goal);
+    pizza.remove();
+    player.setHealth(5);
+  }
+});
+
 levelOne.on('draw', function(context){
 });
 
+
+/*
+*
+* LEVEL TWO
+*
+*/
+
+var levelTwo = levels.create({
+  name: 'level one',
+  backgroundColor: '#000'
+});
 
 /*
 *
@@ -331,6 +345,11 @@ levelOne.on('draw', function(context){
 var health = new Text({ 
   el: '#health', 
   html: player.health
+});
+
+var coins = new Text({ 
+  el: '#coins', 
+  html: player.coins
 });
 
 var title = new Text({

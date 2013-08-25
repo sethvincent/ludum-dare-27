@@ -21,6 +21,7 @@ function Player(options){
   };
 
   this.health = options.health;
+  this.coins = 0
   this.direction = 'right';
   this.scrunched = false;
   
