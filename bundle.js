@@ -120,6 +120,71 @@ Rectangle.prototype.overlaps = function(r) {
   );
 }
 },{}],2:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Enemy;
+inherits(Enemy, Entity);
+
+function Enemy(options){
+  var self = this;
+
+  this.position = { 
+    x: options.position.x, 
+    y: options.position.y 
+  };
+
+  this.size = {
+    x: options.size.x,
+    y: options.size.y
+  };
+
+  this.velocity = {
+    x: options.velocity.x,
+    y: options.velocity.y
+  };
+
+  this.speed = options.speed;
+  this.friction = 0.8;
+  this.color = options.color;
+  
+  this.on('update', function(interval){
+    self.move();
+    this.velocity.y += 1.5;
+    self.checkBoundaries();
+    console.log(this.velocity)     
+  });
+}
+
+Enemy.prototype.move = function(){
+  this.position.x += this.velocity.x * this.friction;
+  this.position.y += this.velocity.y * this.friction;
+};
+
+Enemy.prototype.checkBoundaries = function(){
+  if (this.position.x <= 0){
+    this.velocity.x *= -1;
+  }
+
+  if (this.position.x >= 3000 - this.size.x){
+    this.velocity.x *= -1;
+  }
+
+  if (this.position.y <= 0){
+    this.position.y = 0;
+  }
+
+  if (this.position.y >= 320 - this.size.y){
+    this.position.y = 320 - this.size.y;
+    this.velocity.y = -10;
+    this.jumping = false;
+  }
+};
+
+function randomInteger(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+},{"crtrdg-entity":10,"inherits":20}],3:[function(require,module,exports){
 var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
@@ -129,6 +194,7 @@ var Inventory = require('./inventory');
 var Item = require('./item');
 var Player = require('./player');
 var Camera = require('./camera');
+var Enemy = require('./enemy');
 var Map = require('./map');
 var Text = require('./text');
 var Log = require('./log');
@@ -145,6 +211,7 @@ game.paused = false;
 
 game.over = function(){
   levels.set(gameOver);
+  log.add('hey, um. i think the game is over.')
 };
 
 
@@ -240,7 +307,7 @@ var player = new Player({
   color: '#fff',
   speed: 11,
   friction: 0.9,
-  health: 10
+  health: 100
 });
 
 player.addTo(game);
@@ -294,11 +361,13 @@ player.on('draw', function(context){
 player.tick = function(){
   if (this.health > 0){
     this.setHealth(-1);
-  } else {
-    player.kill();
+
+    if (this.health == 0){
+      player.kill();
+    }
   }
 
-  if (player.health < 10){
+  if (this.health < 4){
     log.add('hey, your health is getting kinda low.')
   }
 };
@@ -311,6 +380,11 @@ player.setHealth = function(n){
 player.setCoins = function(n){
   this.coins += n;
   coins.update(this.coins);
+}
+
+player.setStrength = function(n){
+  this.strength += n;
+  strength.update(this.strength);
 }
 
 player.kill = function(){
@@ -407,6 +481,18 @@ var pizza = new Item({
 });
 
 pizza.on('draw', function(c){
+  c.fillStyle = this.color;
+  c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
+});
+
+var enemy = new Enemy({
+  color: 'pink',
+  size: { x: 100, y: 200 },
+  position: { x: 200, y: 200 },
+  velocity: { x: 10, y: 10 }
+});
+
+enemy.on('draw', function(c){
   console.log('still drawing')
   c.fillStyle = this.color;
   c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
@@ -435,6 +521,7 @@ levelOne.on('start', function(){
     tickStarted = true;
   }
   pizza.addTo(game);
+  enemy.addTo(game);
   player.visible = true;
   goals.set(levelOne.goal);
 });
@@ -444,11 +531,19 @@ levelOne.on('update', function(){
     log.add('you found the pizza!');
     goals.met(levelOne.goal);
     pizza.remove();
-    player.setHealth(5);
+    player.setHealth(25);
+  }
+
+  if(player.touches(enemy)){
+    player.setHealth(-1);
   }
 });
 
 levelOne.on('draw', function(context){
+});
+
+levelOne.on('end', function(){
+
 });
 
 
@@ -462,6 +557,11 @@ var levelTwo = levels.create({
   name: 'level one',
   backgroundColor: '#000'
 });
+
+levelTwo.on('start', function(){
+  log.add('oh, shit! level two!');
+})
+
 
 /*
 *
@@ -479,6 +579,11 @@ var coins = new Text({
   html: player.coins
 });
 
+var strength = new Text({
+  el: '#strength',
+  html: player.strength
+})
+
 var title = new Text({
   el: '#title',
   html: 'ludum dare #27'
@@ -489,7 +594,7 @@ var log = new Log({
   width: '300px',
   appendTo: 'header .container'
 });
-},{"./camera":1,"./inventory":3,"./item":4,"./log":5,"./map":6,"./player":21,"./text":22,"crtrdg-gameloop":12,"crtrdg-goal":14,"crtrdg-keyboard":15,"crtrdg-mouse":17,"crtrdg-scene":18}],3:[function(require,module,exports){
+},{"./camera":1,"./enemy":2,"./inventory":4,"./item":5,"./log":6,"./map":7,"./player":22,"./text":23,"crtrdg-gameloop":13,"crtrdg-goal":15,"crtrdg-keyboard":16,"crtrdg-mouse":18,"crtrdg-scene":19}],4:[function(require,module,exports){
 var inherits = require('inherits');
 
 module.exports = Inventory;
@@ -606,7 +711,7 @@ Inventory.prototype.isEmpty = function isEmpty(){
   }
   return true;
 };
-},{"inherits":19}],4:[function(require,module,exports){
+},{"inherits":20}],5:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -628,7 +733,7 @@ function Item(options){
 
   this.color = options.color;
 }
-},{"crtrdg-entity":9,"inherits":19}],5:[function(require,module,exports){
+},{"crtrdg-entity":10,"inherits":20}],6:[function(require,module,exports){
 module.exports = Log;
 
 function Log(options){
@@ -664,7 +769,7 @@ Log.prototype.add = function(html){
 Log.prototype.clear = function(){
   this.el.innerHTML = '';
 };
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 randomColor = require('random-color');
 
 module.exports = Map;
@@ -710,7 +815,7 @@ Map.prototype.generate = function(callback){
 Map.prototype.draw = function(context, xView, yView){         
   context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
 }
-},{"random-color":20}],7:[function(require,module,exports){
+},{"random-color":21}],8:[function(require,module,exports){
 var process=require("__browserify_process");if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -906,7 +1011,7 @@ EventEmitter.listenerCount = function(emitter, type) {
   return ret;
 };
 
-},{"__browserify_process":8}],8:[function(require,module,exports){
+},{"__browserify_process":9}],9:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -960,7 +1065,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var aabb = require('aabb-2d');
@@ -1051,7 +1156,7 @@ Entity.prototype.setBoundingBox = function(){
   this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
 };
 
-},{"aabb-2d":10,"events":7,"inherits":19}],10:[function(require,module,exports){
+},{"aabb-2d":11,"events":8,"inherits":20}],11:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2
@@ -1146,7 +1251,7 @@ proto.union = function(aabb) {
   return new AABB([base_x, base_y], [max_x - base_x, max_y - base_y])
 }
 
-},{"gl-matrix":11}],11:[function(require,module,exports){
+},{"gl-matrix":12}],12:[function(require,module,exports){
 /**
  * @fileoverview gl-matrix - High performance matrix and vector operations
  * @author Brandon Jones
@@ -4219,7 +4324,7 @@ if(typeof(exports) !== 'undefined') {
   })(shim.exports);
 })();
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var requestAnimationFrame = require('raf');
 var inherits = require('inherits');
@@ -4288,7 +4393,7 @@ Game.prototype.draw = function(){
   this.context.fillRect(0, 0, this.width, this.height);
   this.emit('draw', this.context)
 };
-},{"events":7,"inherits":19,"raf":13}],13:[function(require,module,exports){
+},{"events":8,"inherits":20,"raf":14}],14:[function(require,module,exports){
 module.exports = raf
 
 var EE = require('events').EventEmitter
@@ -4341,7 +4446,7 @@ raf.polyfill = _raf
 raf.now = now
 
 
-},{"events":7}],14:[function(require,module,exports){
+},{"events":8}],15:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -4415,7 +4520,7 @@ inherits(Goal, EventEmitter);
 function Goal(settings){
   this.name = settings.name;
 }
-},{"events":7,"inherits":19}],15:[function(require,module,exports){
+},{"events":8,"inherits":20}],16:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var vkey = require('vkey');
@@ -4446,7 +4551,7 @@ Keyboard.prototype.initializeListeners = function(){
     delete self.keysDown[vkey[e.keyCode]];
   }, false);
 };
-},{"events":7,"inherits":19,"vkey":16}],16:[function(require,module,exports){
+},{"events":8,"inherits":20,"vkey":17}],17:[function(require,module,exports){
 var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
   , isOSX = /OS X/.test(ua)
   , isOpera = /Opera/.test(ua)
@@ -4584,7 +4689,7 @@ for(i = 112; i < 136; ++i) {
   output[i] = 'F'+(i-111)
 }
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -4638,7 +4743,7 @@ Mouse.prototype.calculateOffset = function(e, callback){
   callback(location);
 }
 
-},{"events":7,"inherits":19}],18:[function(require,module,exports){
+},{"events":8,"inherits":20}],19:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -4709,7 +4814,7 @@ Scene.prototype.draw = function(context){
   this.emit('draw', context);
 };
 
-},{"events":7,"inherits":19}],19:[function(require,module,exports){
+},{"events":8,"inherits":20}],20:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4734,7 +4839,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 module.exports = color;
 
 function num(cap){
@@ -4746,7 +4851,7 @@ function color(cap){
   return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
 }
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -4770,7 +4875,8 @@ function Player(options){
   };
 
   this.health = options.health;
-  this.coins = 0
+  this.coins = 5;
+  this.strength = 5;
   this.direction = 'right';
   this.scrunched = false;
   
@@ -4850,7 +4956,7 @@ Player.prototype.input = function(keysdown){
     this.scrunched = true;
   }
 };
-},{"crtrdg-entity":9,"inherits":19}],22:[function(require,module,exports){
+},{"crtrdg-entity":10,"inherits":20}],23:[function(require,module,exports){
 /* 
 *
 * TEXT UTILITIES
@@ -4873,5 +4979,5 @@ Text.prototype.update = function(text){
 Text.prototype.empty = function(text){
   this.el.innerHTML = '';
 }
-},{}]},{},[2])
+},{}]},{},[3])
 ;

@@ -7,6 +7,7 @@ var Inventory = require('./inventory');
 var Item = require('./item');
 var Player = require('./player');
 var Camera = require('./camera');
+var Enemy = require('./enemy');
 var Map = require('./map');
 var Text = require('./text');
 var Log = require('./log');
@@ -23,6 +24,7 @@ game.paused = false;
 
 game.over = function(){
   levels.set(gameOver);
+  log.add('hey, um. i think the game is over.')
 };
 
 
@@ -118,7 +120,7 @@ var player = new Player({
   color: '#fff',
   speed: 11,
   friction: 0.9,
-  health: 10
+  health: 100
 });
 
 player.addTo(game);
@@ -172,11 +174,13 @@ player.on('draw', function(context){
 player.tick = function(){
   if (this.health > 0){
     this.setHealth(-1);
-  } else {
-    player.kill();
+
+    if (this.health == 0){
+      player.kill();
+    }
   }
 
-  if (player.health < 10){
+  if (this.health < 4){
     log.add('hey, your health is getting kinda low.')
   }
 };
@@ -189,6 +193,11 @@ player.setHealth = function(n){
 player.setCoins = function(n){
   this.coins += n;
   coins.update(this.coins);
+}
+
+player.setStrength = function(n){
+  this.strength += n;
+  strength.update(this.strength);
 }
 
 player.kill = function(){
@@ -285,6 +294,18 @@ var pizza = new Item({
 });
 
 pizza.on('draw', function(c){
+  c.fillStyle = this.color;
+  c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
+});
+
+var enemy = new Enemy({
+  color: 'pink',
+  size: { x: 100, y: 200 },
+  position: { x: 200, y: 200 },
+  velocity: { x: 10, y: 10 }
+});
+
+enemy.on('draw', function(c){
   console.log('still drawing')
   c.fillStyle = this.color;
   c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
@@ -313,6 +334,7 @@ levelOne.on('start', function(){
     tickStarted = true;
   }
   pizza.addTo(game);
+  enemy.addTo(game);
   player.visible = true;
   goals.set(levelOne.goal);
 });
@@ -322,11 +344,19 @@ levelOne.on('update', function(){
     log.add('you found the pizza!');
     goals.met(levelOne.goal);
     pizza.remove();
-    player.setHealth(5);
+    player.setHealth(25);
+  }
+
+  if(player.touches(enemy)){
+    player.setHealth(-1);
   }
 });
 
 levelOne.on('draw', function(context){
+});
+
+levelOne.on('end', function(){
+
 });
 
 
@@ -340,6 +370,11 @@ var levelTwo = levels.create({
   name: 'level one',
   backgroundColor: '#000'
 });
+
+levelTwo.on('start', function(){
+  log.add('oh, shit! level two!');
+})
+
 
 /*
 *
@@ -356,6 +391,11 @@ var coins = new Text({
   el: '#coins', 
   html: player.coins
 });
+
+var strength = new Text({
+  el: '#strength',
+  html: player.strength
+})
 
 var title = new Text({
   el: '#title',
