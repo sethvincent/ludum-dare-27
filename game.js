@@ -56,14 +56,17 @@ var levelManager = new LevelManager(game);
 *
 */
 
-setInterval(tick, 10000);
-
 function tick(){
-  console.log('10 seconds have passed');
-  map.generate();
-  player.tick();
-}
+   setTimeout(function(){
 
+    console.log('10 seconds have passed');
+    map.generate();
+    player.tick();
+
+    tick();
+
+  }, 10000);
+}
 
 /*
 *
@@ -174,10 +177,10 @@ player.on('draw', function(context){
 });
 
 player.tick = function(){
-  this.setHealth(-1);
-
   if (this.health <= 0){
     player.kill();
+  } else {
+    this.setHealth(-1);
   }
 };
 
@@ -242,8 +245,8 @@ var gameOver = levelManager.create({
 });
 
 gameOver.on('start', function(){
-  console.log('game over')
   player.visible = false;
+  title.update('GAME OVER');
   game.pause();
 });
 
@@ -302,6 +305,7 @@ levelOne.goal.on('met', function(){
 });
 
 levelOne.on('start', function(){
+  tick();
   pizza.addTo(game);
   player.visible = true;
   goals.set(levelOne.goal);
@@ -322,5 +326,8 @@ var health = new Text({
   html: player.health
 });
 
-
+var title = new Text({
+  el: '#title',
+  html: 'ludum dare #27'
+});
 
