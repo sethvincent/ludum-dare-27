@@ -1,4 +1,76 @@
 ;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Bullet;
+inherits(Bullet, Entity);
+
+function Bullet(options){  
+  this.size = {
+    x: 10,
+    y: 10
+  };
+
+  this.target = {
+    x: options.target.x,
+    y: options.target.y
+  }
+
+  this.position = { 
+    x: options.position.x - this.size.x / 2, 
+    y: options.position.y - this.size.y / 2 
+  };
+
+  this.velocity = {
+    x: 0,
+    y: 0
+  };
+
+  this.camera = options.camera;
+
+  this.dx = (this.target.x - this.position.x);
+  this.dy = (this.target.y - this.position.y);
+  this.mag = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+  this.speed = 20;
+  this.color = '#fff';
+
+  this.on('update', function(interval){
+
+    this.velocity.x = (this.dx / this.mag) * this.speed;
+    this.velocity.y = (this.dy / this.mag) * this.speed;
+
+    this.position.x += this.velocity.x;
+    this.position.y += this.velocity.y;
+
+    this.boundaries();
+  });
+
+  this.on('draw', function(context){
+    context.fillStyle = this.color;
+    context.fillRect(this.position.x - this.camera.position.x, this.position.y - this.camera.position.y, this.size.x, this.size.y);
+  });
+
+  return this;
+}
+
+Bullet.prototype.boundaries = function(){
+  if (this.position.x < 0){
+    this.remove();
+  }
+
+  if (this.position.x > 3000){
+    this.remove();
+  }
+
+  if (this.position.y < 0){
+    this.remove();
+  }
+
+  if (this.position.y > 320){
+    this.remove();
+  }
+};
+},{"crtrdg-entity":11,"inherits":21}],2:[function(require,module,exports){
 /*
 *
 * Camera
@@ -119,7 +191,7 @@ Rectangle.prototype.overlaps = function(r) {
     this.bottom > r.top
   );
 }
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -151,8 +223,7 @@ function Enemy(options){
   this.on('update', function(interval){
     self.move();
     this.velocity.y += 1.5;
-    self.checkBoundaries();
-    console.log(this.velocity)     
+    self.boundaries();
   });
 }
 
@@ -161,7 +232,7 @@ Enemy.prototype.move = function(){
   this.position.y += this.velocity.y * this.friction;
 };
 
-Enemy.prototype.checkBoundaries = function(){
+Enemy.prototype.boundaries = function(){
   if (this.position.x <= 0){
     this.velocity.x *= -1;
   }
@@ -184,7 +255,7 @@ Enemy.prototype.checkBoundaries = function(){
 function randomInteger(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-},{"crtrdg-entity":10,"inherits":20}],3:[function(require,module,exports){
+},{"crtrdg-entity":11,"inherits":21}],4:[function(require,module,exports){
 var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
@@ -193,6 +264,7 @@ var Goals = require('crtrdg-goal');
 var Inventory = require('./inventory');
 var Item = require('./item');
 var Player = require('./player');
+var Bullet = require('./bullet');
 var Camera = require('./camera');
 var Enemy = require('./enemy');
 var Map = require('./map');
@@ -286,6 +358,39 @@ keyboard.on('keyup', function(key){
     player.scrunched = false;
     player.velocity.y = -5;
   }
+});
+
+
+/*
+*
+* MOUSE
+*
+*/
+
+var mouse = new Mouse(game);
+
+mouse.on('click', function(location){
+  new Bullet({
+    position: { 
+      x: player.position.x + player.size.x / 2, 
+      y: player.position.y + player.size.y / 2
+    },
+
+    target: { 
+      x: location.x + camera.position.x, 
+      y: location.y + camera.position.y 
+    },
+    camera: camera
+  }).addTo(game)
+    .on('update', function(interval){
+      if (this.touches(enemy)){
+        this.remove();
+        enemy.remove();
+        gold.addTo(game);
+        gold.position.x = enemy.position.x;
+      }
+    }
+  );
 });
 
 
@@ -471,16 +576,16 @@ pauseMenu.on('start', function(){
 *
 */
 
-var pizza = new Item({
-  name: 'pizza',
-  color: '#000',
+var gold = new Item({
+  name: 'gold',
+  color: '#FFD700',
   position: {
     x: 200,
-    y: game.height - 50
+    y: game.height - 20
   }
 });
 
-pizza.on('draw', function(c){
+gold.on('draw', function(c){
   c.fillStyle = this.color;
   c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
 });
@@ -520,17 +625,16 @@ levelOne.on('start', function(){
     tick();
     tickStarted = true;
   }
-  pizza.addTo(game);
   enemy.addTo(game);
   player.visible = true;
   goals.set(levelOne.goal);
 });
 
 levelOne.on('update', function(){
-  if(player.touches(pizza)){
-    log.add('you found the pizza!');
+  if(player.touches(gold)){
+    log.add('you found the gold!');
     goals.met(levelOne.goal);
-    pizza.remove();
+    gold.remove();
     player.setHealth(25);
   }
 
@@ -594,7 +698,7 @@ var log = new Log({
   width: '300px',
   appendTo: 'header .container'
 });
-},{"./camera":1,"./enemy":2,"./inventory":4,"./item":5,"./log":6,"./map":7,"./player":22,"./text":23,"crtrdg-gameloop":13,"crtrdg-goal":15,"crtrdg-keyboard":16,"crtrdg-mouse":18,"crtrdg-scene":19}],4:[function(require,module,exports){
+},{"./bullet":1,"./camera":2,"./enemy":3,"./inventory":5,"./item":6,"./log":7,"./map":8,"./player":23,"./text":24,"crtrdg-gameloop":14,"crtrdg-goal":16,"crtrdg-keyboard":17,"crtrdg-mouse":19,"crtrdg-scene":20}],5:[function(require,module,exports){
 var inherits = require('inherits');
 
 module.exports = Inventory;
@@ -711,7 +815,7 @@ Inventory.prototype.isEmpty = function isEmpty(){
   }
   return true;
 };
-},{"inherits":20}],5:[function(require,module,exports){
+},{"inherits":21}],6:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -727,13 +831,13 @@ function Item(options){
   };
 
   this.size = {
-    x: 50,
-    y: 50
+    x: 20,
+    y: 20
   };
 
   this.color = options.color;
 }
-},{"crtrdg-entity":10,"inherits":20}],6:[function(require,module,exports){
+},{"crtrdg-entity":11,"inherits":21}],7:[function(require,module,exports){
 module.exports = Log;
 
 function Log(options){
@@ -769,7 +873,7 @@ Log.prototype.add = function(html){
 Log.prototype.clear = function(){
   this.el.innerHTML = '';
 };
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 randomColor = require('random-color');
 
 module.exports = Map;
@@ -815,7 +919,7 @@ Map.prototype.generate = function(callback){
 Map.prototype.draw = function(context, xView, yView){         
   context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
 }
-},{"random-color":21}],8:[function(require,module,exports){
+},{"random-color":22}],9:[function(require,module,exports){
 var process=require("__browserify_process");if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -1011,7 +1115,7 @@ EventEmitter.listenerCount = function(emitter, type) {
   return ret;
 };
 
-},{"__browserify_process":9}],9:[function(require,module,exports){
+},{"__browserify_process":10}],10:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -1065,7 +1169,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var aabb = require('aabb-2d');
@@ -1156,7 +1260,7 @@ Entity.prototype.setBoundingBox = function(){
   this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
 };
 
-},{"aabb-2d":11,"events":8,"inherits":20}],11:[function(require,module,exports){
+},{"aabb-2d":12,"events":9,"inherits":21}],12:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2
@@ -1251,7 +1355,7 @@ proto.union = function(aabb) {
   return new AABB([base_x, base_y], [max_x - base_x, max_y - base_y])
 }
 
-},{"gl-matrix":12}],12:[function(require,module,exports){
+},{"gl-matrix":13}],13:[function(require,module,exports){
 /**
  * @fileoverview gl-matrix - High performance matrix and vector operations
  * @author Brandon Jones
@@ -4324,7 +4428,7 @@ if(typeof(exports) !== 'undefined') {
   })(shim.exports);
 })();
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var requestAnimationFrame = require('raf');
 var inherits = require('inherits');
@@ -4393,7 +4497,7 @@ Game.prototype.draw = function(){
   this.context.fillRect(0, 0, this.width, this.height);
   this.emit('draw', this.context)
 };
-},{"events":8,"inherits":20,"raf":14}],14:[function(require,module,exports){
+},{"events":9,"inherits":21,"raf":15}],15:[function(require,module,exports){
 module.exports = raf
 
 var EE = require('events').EventEmitter
@@ -4446,7 +4550,7 @@ raf.polyfill = _raf
 raf.now = now
 
 
-},{"events":8}],15:[function(require,module,exports){
+},{"events":9}],16:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -4520,7 +4624,7 @@ inherits(Goal, EventEmitter);
 function Goal(settings){
   this.name = settings.name;
 }
-},{"events":8,"inherits":20}],16:[function(require,module,exports){
+},{"events":9,"inherits":21}],17:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var vkey = require('vkey');
@@ -4551,7 +4655,7 @@ Keyboard.prototype.initializeListeners = function(){
     delete self.keysDown[vkey[e.keyCode]];
   }, false);
 };
-},{"events":8,"inherits":20,"vkey":17}],17:[function(require,module,exports){
+},{"events":9,"inherits":21,"vkey":18}],18:[function(require,module,exports){
 var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
   , isOSX = /OS X/.test(ua)
   , isOpera = /Opera/.test(ua)
@@ -4689,7 +4793,7 @@ for(i = 112; i < 136; ++i) {
   output[i] = 'F'+(i-111)
 }
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -4743,7 +4847,7 @@ Mouse.prototype.calculateOffset = function(e, callback){
   callback(location);
 }
 
-},{"events":8,"inherits":20}],19:[function(require,module,exports){
+},{"events":9,"inherits":21}],20:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -4814,7 +4918,7 @@ Scene.prototype.draw = function(context){
   this.emit('draw', context);
 };
 
-},{"events":8,"inherits":20}],20:[function(require,module,exports){
+},{"events":9,"inherits":21}],21:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4839,7 +4943,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 module.exports = color;
 
 function num(cap){
@@ -4851,7 +4955,7 @@ function color(cap){
   return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
 }
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -4956,7 +5060,7 @@ Player.prototype.input = function(keysdown){
     this.scrunched = true;
   }
 };
-},{"crtrdg-entity":10,"inherits":20}],23:[function(require,module,exports){
+},{"crtrdg-entity":11,"inherits":21}],24:[function(require,module,exports){
 /* 
 *
 * TEXT UTILITIES
@@ -4979,5 +5083,5 @@ Text.prototype.update = function(text){
 Text.prototype.empty = function(text){
   this.el.innerHTML = '';
 }
-},{}]},{},[3])
+},{}]},{},[4])
 ;
