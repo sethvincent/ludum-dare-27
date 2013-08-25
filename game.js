@@ -9,6 +9,7 @@ var Player = require('./player');
 var Camera = require('./camera');
 var Map = require('./map');
 var Text = require('./text');
+var Log = require('./log');
 
 /* create game */
 var game = new Game({
@@ -314,7 +315,7 @@ levelOne.on('start', function(){
 
 levelOne.on('update', function(){
   if(player.touches(pizza)){
-    console.log('you touched pizza!');
+    log.add('you found the pizza!');
     goals.met(levelOne.goal);
     pizza.remove();
     player.setHealth(5);
@@ -357,3 +358,10 @@ var title = new Text({
   html: 'ludum dare #27'
 });
 
+var log = new Log({
+  height: '50px',
+  width: '300px',
+  appendTo: 'header .container'
+});
+
+log.add('!');

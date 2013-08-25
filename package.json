@@ -2,7 +2,8 @@
   "name": "ludum-dare-27",
   "version": "0.0.0",
   "scripts": {
-    "start": "beefy game.js:bundle.js --live"
+    "start": "beefy game.js:bundle.js --live",
+    "bundle": "browserify game.js -o bundle.js"
   },
   "dependencies": {
     "crtrdg-gameloop": "~0.0.1",

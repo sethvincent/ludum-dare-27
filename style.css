@@ -93,6 +93,11 @@ canvas#game {
   height: 320px;
 }
 
+#log {
+  padding: 0px;
+  margin: 20px 0px 0px 0px;
+}
+
 /* tablet size */
 @media only screen and (min-width: 600px) {
   .container {

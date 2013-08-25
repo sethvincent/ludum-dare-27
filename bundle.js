@@ -143,6 +143,42 @@ Text.prototype.empty = function(text){
   this.el.innerHTML = '';
 }
 },{}],3:[function(require,module,exports){
+module.exports = Log;
+
+function Log(options){
+  this.el = document.createElement('ul');
+
+  if (options.appendTo){
+    var parent = document.querySelector(options.appendTo);
+    parent.appendChild(this.el);
+  } else {
+    document.body.appendChild(this.el);
+  }
+  this.el.id = options.id || 'log';
+
+/*
+  this.el.style.overflow = 'scroll';
+  this.el.style.display = 'block';
+  this.el.style.position = 'fixed';
+  this.el.style.zIndex = '1111';
+  this.el.style.top = '0'
+  this.el.style.width = options.width || '';
+  this.el.style.height = options.height || '';
+  */
+}
+
+Log.prototype.add = function(html){
+  var item =  document.createElement('li');
+  item.innerHTML = html;
+  item.style.listStyleType = 'none';
+  this.el.appendChild(item);
+  this.el.scrollTop = this.el.scrollHeight;
+};
+
+Log.prototype.clear = function(){
+  this.el.innerHTML = '';
+};
+},{}],4:[function(require,module,exports){
 var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
@@ -154,6 +190,7 @@ var Player = require('./player');
 var Camera = require('./camera');
 var Map = require('./map');
 var Text = require('./text');
+var Log = require('./log');
 
 /* create game */
 var game = new Game({
@@ -459,7 +496,7 @@ levelOne.on('start', function(){
 
 levelOne.on('update', function(){
   if(player.touches(pizza)){
-    console.log('you touched pizza!');
+    log.add('you found the pizza!');
     goals.met(levelOne.goal);
     pizza.remove();
     player.setHealth(5);
@@ -502,8 +539,15 @@ var title = new Text({
   html: 'ludum dare #27'
 });
 
+var log = new Log({
+  height: '50px',
+  width: '300px',
+  appendTo: 'header .container'
+});
 
-},{"./inventory":4,"./item":5,"./player":6,"./camera":1,"./map":7,"./text":2,"crtrdg-gameloop":8,"crtrdg-keyboard":9,"crtrdg-mouse":10,"crtrdg-scene":11,"crtrdg-goal":12}],13:[function(require,module,exports){
+log.add('!');
+
+},{"./inventory":5,"./item":6,"./player":7,"./camera":1,"./map":8,"./text":2,"./log":3,"crtrdg-gameloop":9,"crtrdg-keyboard":10,"crtrdg-mouse":11,"crtrdg-scene":12,"crtrdg-goal":13}],14:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -557,7 +601,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -743,7 +787,7 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":13}],4:[function(require,module,exports){
+},{"__browserify_process":14}],5:[function(require,module,exports){
 var inherits = require('inherits');
 
 module.exports = Inventory;
@@ -860,7 +904,7 @@ Inventory.prototype.isEmpty = function isEmpty(){
   }
   return true;
 };
-},{"inherits":15}],5:[function(require,module,exports){
+},{"inherits":16}],6:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -882,7 +926,7 @@ function Item(options){
 
   this.color = options.color;
 }
-},{"inherits":15,"crtrdg-entity":16}],6:[function(require,module,exports){
+},{"inherits":16,"crtrdg-entity":17}],7:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -986,7 +1030,7 @@ Player.prototype.input = function(keysdown){
     this.scrunched = true;
   }
 };
-},{"inherits":15,"crtrdg-entity":16}],7:[function(require,module,exports){
+},{"inherits":16,"crtrdg-entity":17}],8:[function(require,module,exports){
 randomColor = require('random-color');
 
 module.exports = Map;
@@ -1032,7 +1076,7 @@ Map.prototype.generate = function(callback){
 Map.prototype.draw = function(context, xView, yView){         
   context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
 }
-},{"random-color":17}],15:[function(require,module,exports){
+},{"random-color":18}],16:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -1057,7 +1101,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports = color;
 
 function num(cap){
@@ -1069,7 +1113,7 @@ function color(cap){
   return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
 }
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 (function(){var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
   , isOSX = /OS X/.test(ua)
   , isOpera = /Opera/.test(ua)
@@ -1208,61 +1252,7 @@ for(i = 112; i < 136; ++i) {
 }
 
 })()
-},{}],19:[function(require,module,exports){
-(function(){module.exports = raf
-
-var EE = require('events').EventEmitter
-  , global = typeof window === 'undefined' ? this : window
-  , now = global.performance && global.performance.now ? function() {
-    return performance.now()
-  } : Date.now || function () {
-    return +new Date()
-  }
-
-var _raf =
-  global.requestAnimationFrame ||
-  global.webkitRequestAnimationFrame ||
-  global.mozRequestAnimationFrame ||
-  global.msRequestAnimationFrame ||
-  global.oRequestAnimationFrame ||
-  (global.setImmediate ? function(fn, el) {
-    setImmediate(fn)
-  } :
-  function(fn, el) {
-    setTimeout(fn, 0)
-  })
-
-function raf(el) {
-  var now = raf.now()
-    , ee = new EE
-
-  ee.pause = function() { ee.paused = true }
-  ee.resume = function() { ee.paused = false }
-
-  _raf(iter, el)
-
-  return ee
-
-  function iter(timestamp) {
-    var _now = raf.now()
-      , dt = _now - now
-    
-    now = _now
-
-    ee.emit('data', dt)
-
-    if(!ee.paused) {
-      _raf(iter, el)
-    }
-  }
-}
-
-raf.polyfill = _raf
-raf.now = now
-
-
-})()
-},{"events":14}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var requestAnimationFrame = require('raf');
 var inherits = require('inherits');
@@ -1331,7 +1321,7 @@ Game.prototype.draw = function(){
   this.context.fillRect(0, 0, this.width, this.height);
   this.emit('draw', this.context)
 };
-},{"events":14,"raf":19,"inherits":15}],9:[function(require,module,exports){
+},{"events":15,"raf":20,"inherits":16}],10:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var vkey = require('vkey');
@@ -1362,7 +1352,7 @@ Keyboard.prototype.initializeListeners = function(){
     delete self.keysDown[vkey[e.keyCode]];
   }, false);
 };
-},{"events":14,"vkey":18,"inherits":15}],10:[function(require,module,exports){
+},{"events":15,"vkey":19,"inherits":16}],11:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -1416,7 +1406,7 @@ Mouse.prototype.calculateOffset = function(e, callback){
   callback(location);
 }
 
-},{"events":14,"inherits":15}],11:[function(require,module,exports){
+},{"events":15,"inherits":16}],12:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -1487,7 +1477,61 @@ Scene.prototype.draw = function(context){
   this.emit('draw', context);
 };
 
-},{"events":14,"inherits":15}],12:[function(require,module,exports){
+},{"events":15,"inherits":16}],20:[function(require,module,exports){
+(function(){module.exports = raf
+
+var EE = require('events').EventEmitter
+  , global = typeof window === 'undefined' ? this : window
+  , now = global.performance && global.performance.now ? function() {
+    return performance.now()
+  } : Date.now || function () {
+    return +new Date()
+  }
+
+var _raf =
+  global.requestAnimationFrame ||
+  global.webkitRequestAnimationFrame ||
+  global.mozRequestAnimationFrame ||
+  global.msRequestAnimationFrame ||
+  global.oRequestAnimationFrame ||
+  (global.setImmediate ? function(fn, el) {
+    setImmediate(fn)
+  } :
+  function(fn, el) {
+    setTimeout(fn, 0)
+  })
+
+function raf(el) {
+  var now = raf.now()
+    , ee = new EE
+
+  ee.pause = function() { ee.paused = true }
+  ee.resume = function() { ee.paused = false }
+
+  _raf(iter, el)
+
+  return ee
+
+  function iter(timestamp) {
+    var _now = raf.now()
+      , dt = _now - now
+    
+    now = _now
+
+    ee.emit('data', dt)
+
+    if(!ee.paused) {
+      _raf(iter, el)
+    }
+  }
+}
+
+raf.polyfill = _raf
+raf.now = now
+
+
+})()
+},{"events":15}],13:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 
@@ -1561,7 +1605,7 @@ inherits(Goal, EventEmitter);
 function Goal(settings){
   this.name = settings.name;
 }
-},{"events":14,"inherits":15}],16:[function(require,module,exports){
+},{"events":15,"inherits":16}],17:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var aabb = require('aabb-2d');
@@ -1652,7 +1696,7 @@ Entity.prototype.setBoundingBox = function(){
   this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
 };
 
-},{"events":14,"aabb-2d":20,"inherits":15}],20:[function(require,module,exports){
+},{"events":15,"aabb-2d":21,"inherits":16}],21:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2
@@ -1747,7 +1791,7 @@ proto.union = function(aabb) {
   return new AABB([base_x, base_y], [max_x - base_x, max_y - base_y])
 }
 
-},{"gl-matrix":21}],21:[function(require,module,exports){
+},{"gl-matrix":22}],22:[function(require,module,exports){
 (function(){/**
  * @fileoverview gl-matrix - High performance matrix and vector operations
  * @author Brandon Jones
@@ -4821,5 +4865,5 @@ if(typeof(exports) !== 'undefined') {
 })();
 
 })()
-},{}]},{},[3])
+},{}]},{},[4])
 ;
