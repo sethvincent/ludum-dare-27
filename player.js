@@ -57,11 +57,19 @@ Player.prototype.input = function(keysdown){
   if ('A' in keysdown){
     this.direction = 'left';
     this.velocity.x = (this.scrunched) ? -this.speed / 2 : -this.speed;
+        if (!this.jumping){
+      this.jumping = true;
+      this.velocity.y = -5;
+    }
   }
 
   if ('D' in keysdown){
     this.direction = 'right';
     this.velocity.x = (this.scrunched) ? this.speed / 2 : this.speed;
+        if (!this.jumping){
+      this.jumping = true;
+      this.velocity.y = -5;
+    }
   }
 
   if ('W' in keysdown){

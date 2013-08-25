@@ -204,8 +204,8 @@ var pizza = new Item({
   name: 'pizza',
   color: '#000',
   position: {
-    x: 2000,
-    y: 100
+    x: 200,
+    y: game.height - 50
   }
 });
 

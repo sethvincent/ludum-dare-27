@@ -326,8 +326,8 @@ var pizza = new Item({
   name: 'pizza',
   color: '#000',
   position: {
-    x: 2000,
-    y: 100
+    x: 200,
+    y: game.height - 50
   }
 });
 
@@ -742,7 +742,29 @@ Inventory.prototype.isEmpty = function isEmpty(){
   }
   return true;
 };
-},{"inherits":14}],5:[function(require,module,exports){
+},{"inherits":14}],4:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Item;
+inherits(Item, Entity);
+
+function Item(options){
+  this.name = options.name;
+
+  this.position = {
+    x: options.position.x,
+    y: options.position.y
+  };
+
+  this.size = {
+    x: 50,
+    y: 50
+  };
+
+  this.color = options.color;
+}
+},{"inherits":14,"crtrdg-entity":15}],5:[function(require,module,exports){
 var inherits = require('inherits');
 var Entity = require('crtrdg-entity');
 
@@ -802,11 +824,19 @@ Player.prototype.input = function(keysdown){
   if ('A' in keysdown){
     this.direction = 'left';
     this.velocity.x = (this.scrunched) ? -this.speed / 2 : -this.speed;
+        if (!this.jumping){
+      this.jumping = true;
+      this.velocity.y = -5;
+    }
   }
 
   if ('D' in keysdown){
     this.direction = 'right';
     this.velocity.x = (this.scrunched) ? this.speed / 2 : this.speed;
+        if (!this.jumping){
+      this.jumping = true;
+      this.velocity.y = -5;
+    }
   }
 
   if ('W' in keysdown){
@@ -820,28 +850,6 @@ Player.prototype.input = function(keysdown){
     this.scrunched = true;
   }
 };
-},{"inherits":14,"crtrdg-entity":15}],4:[function(require,module,exports){
-var inherits = require('inherits');
-var Entity = require('crtrdg-entity');
-
-module.exports = Item;
-inherits(Item, Entity);
-
-function Item(options){
-  this.name = options.name;
-
-  this.position = {
-    x: options.position.x,
-    y: options.position.y
-  };
-
-  this.size = {
-    x: 50,
-    y: 50
-  };
-
-  this.color = options.color;
-}
 },{"inherits":14,"crtrdg-entity":15}],6:[function(require,module,exports){
 randomColor = require('random-color');
 
