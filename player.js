@@ -20,6 +20,7 @@ function Player(options){
     y: 0
   };
 
+  this.health = options.health;
   this.direction = 'right';
   this.scrunched = false;
   

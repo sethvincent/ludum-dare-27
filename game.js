@@ -2,13 +2,13 @@ var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
 var LevelManager = require('crtrdg-scene');
-var goals = require('crtrdg-goal')(game);
+var Goals = require('crtrdg-goal');
 var Inventory = require('./inventory');
 var Item = require('./item');
 var Player = require('./player');
 var Camera = require('./camera');
 var Map = require('./map');
-
+var Text = require('./text');
 
 /* create game */
 var game = new Game({
@@ -20,6 +20,30 @@ var game = new Game({
 
 game.paused = false;
 
+game.over = function(){
+  levelManager.set(gameOver);
+};
+
+
+/*
+*
+* GAME EVENT LISTENERS
+*
+*/
+
+game.on('update', function(interval){
+  camera.update();
+});
+
+game.on('draw', function(context){
+  map.draw(context, camera.position.x, camera.position.y)
+});
+
+game.on('pause', function(){});
+
+game.on('resume', function(){});
+
+var goals = new Goals(game);
 var levelManager = new LevelManager(game);
 
 
@@ -31,15 +55,22 @@ var levelManager = new LevelManager(game);
 * that related to the theme.
 *
 */
+
 setInterval(tick, 10000);
 
 function tick(){
   console.log('10 seconds have passed');
   map.generate();
+  player.tick();
 }
 
 
-/* set up keyboard */
+/*
+*
+* KEYBOARD
+*
+*/
+
 var keyboard = new Keyboard(game);
 var keysdown = keyboard.keysdown;
 
@@ -59,18 +90,26 @@ keyboard.on('keydown', function(key){
     console.log(game.paused)
     if (!game.paused){
       game.pause();
+      game.paused = true;
       player.visible = false;
       game.previousScene = game.currentScene;
       levelManager.set(pauseMenu);
     } else {
       game.resume();
+      game.paused = false;
       player.visible = true;
       levelManager.set(game.previousScene);
     }
   }
 });
 
-/* create player */
+
+/*
+*
+* PLAYER
+*
+*/
+
 var player = new Player({
   size: {
     x: 40,
@@ -82,30 +121,9 @@ var player = new Player({
   },
   color: '#fff',
   speed: 11,
-  friction: 0.9
+  friction: 0.9,
+  health: 10
 });
-
-var map = new Map(game, 3000, 320);
-map.generate();
-
-var camera = new Camera({
-  follow: player,
-  followPoint: { x: game.width / 2 },
-  viewport: { width: game.width, height: game.height },
-  map: map
-});
-
-game.on('update', function(interval){
-  camera.update();
-});
-
-game.on('draw', function(context){
-  map.draw(context, camera.position.x, camera.position.y)
-});
-
-game.on('pause', function(){});
-
-game.on('resume', function(){});
 
 player.addTo(game);
 
@@ -155,6 +173,41 @@ player.on('draw', function(context){
   }
 });
 
+player.tick = function(){
+  this.setHealth(-1);
+
+  if (this.health <= 0){
+    player.kill();
+  }
+};
+
+player.setHealth = function(n){
+  this.health += n;
+  health.update(this.health);
+}
+
+player.kill = function(){
+  player.remove();
+  game.over();
+}
+
+
+/*
+*
+* MAP & CAMERA
+*
+*/
+
+var map = new Map(game, 3000, 320);
+map.generate();
+
+var camera = new Camera({
+  follow: player,
+  followPoint: { x: game.width / 2 },
+  viewport: { width: game.width, height: game.height },
+  map: map
+});
+
 
 /*
 *
@@ -176,6 +229,23 @@ menu.on('start', function(){
 // set main menu as first screen
 levelManager.set(menu);
 
+
+/*
+*
+* GAME OVER
+*
+*/
+
+var gameOver = levelManager.create({
+  name: 'game over',
+  backgroundColor: '#000'
+});
+
+gameOver.on('start', function(){
+  console.log('game over')
+  player.visible = false;
+  game.pause();
+});
 
 
 /*
@@ -241,24 +311,16 @@ levelOne.on('draw', function(context){
 });
 
 
-/* text utilities */
+/*
+*
+* UI
+*
+*/
 
-function Text(options){
-  this.el = document.querySelector(options.el);
+var health = new Text({ 
+  el: '#health', 
+  html: player.health
+});
 
-  for (var style in options.styles){
-    this.el.style[style] = options.styles[style];
-  }
 
-  if (options.html) {
-    this.update(options.html);
-  }
-}
 
-Text.prototype.update = function update(text){
-  this.el.innerHTML = text;
-}
-
-Text.prototype.empty = function set(text){
-  this.el.innerHTML = '';
-}
