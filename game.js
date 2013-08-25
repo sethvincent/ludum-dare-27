@@ -175,6 +175,10 @@ player.tick = function(){
   } else {
     player.kill();
   }
+
+  if (player.health < 10){
+    log.add('hey, your health is getting kinda low.')
+  }
 };
 
 player.setHealth = function(n){
@@ -363,5 +367,3 @@ var log = new Log({
   width: '300px',
   appendTo: 'header .container'
 });
-
-log.add('!');

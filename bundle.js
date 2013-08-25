@@ -120,65 +120,6 @@ Rectangle.prototype.overlaps = function(r) {
   );
 }
 },{}],2:[function(require,module,exports){
-/* 
-*
-* TEXT UTILITIES
-*
-*/
-
-module.exports = Text;
-
-function Text(options){
-  this.el = document.querySelector(options.el);
-  if (options.html) {
-    this.update(options.html);
-  }
-}
-
-Text.prototype.update = function(text){
-  this.el.innerHTML = text;
-}
-
-Text.prototype.empty = function(text){
-  this.el.innerHTML = '';
-}
-},{}],3:[function(require,module,exports){
-module.exports = Log;
-
-function Log(options){
-  this.el = document.createElement('ul');
-
-  if (options.appendTo){
-    var parent = document.querySelector(options.appendTo);
-    parent.appendChild(this.el);
-  } else {
-    document.body.appendChild(this.el);
-  }
-  this.el.id = options.id || 'log';
-
-/*
-  this.el.style.overflow = 'scroll';
-  this.el.style.display = 'block';
-  this.el.style.position = 'fixed';
-  this.el.style.zIndex = '1111';
-  this.el.style.top = '0'
-  this.el.style.width = options.width || '';
-  this.el.style.height = options.height || '';
-  */
-}
-
-Log.prototype.add = function(html){
-  var item =  document.createElement('li');
-  item.innerHTML = html;
-  item.style.listStyleType = 'none';
-  this.el.appendChild(item);
-  this.el.scrollTop = this.el.scrollHeight;
-};
-
-Log.prototype.clear = function(){
-  this.el.innerHTML = '';
-};
-},{}],4:[function(require,module,exports){
 var Game = require('crtrdg-gameloop');
 var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
@@ -355,6 +296,10 @@ player.tick = function(){
     this.setHealth(-1);
   } else {
     player.kill();
+  }
+
+  if (player.health < 10){
+    log.add('hey, your health is getting kinda low.')
   }
 };
 
@@ -544,65 +489,229 @@ var log = new Log({
   width: '300px',
   appendTo: 'header .container'
 });
+},{"./camera":1,"./inventory":3,"./item":4,"./log":5,"./map":6,"./player":21,"./text":22,"crtrdg-gameloop":12,"crtrdg-goal":14,"crtrdg-keyboard":15,"crtrdg-mouse":17,"crtrdg-scene":18}],3:[function(require,module,exports){
+var inherits = require('inherits');
 
-log.add('!');
+module.exports = Inventory;
 
-},{"./inventory":5,"./item":6,"./player":7,"./camera":1,"./map":8,"./text":2,"./log":3,"crtrdg-gameloop":9,"crtrdg-keyboard":10,"crtrdg-mouse":11,"crtrdg-scene":12,"crtrdg-goal":13}],14:[function(require,module,exports){
-// shim for using process in browser
+function Inventory(game){
+  this.game = game;
+  this.game.inventory = {};
 
-var process = module.exports = {};
+  this.createHTML();
 
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
+  var self = this;
 
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
+  this.game.on('update', function(interval){
+    if (self.isEmpty() === false){
+      self.el.style.display = 'block';
+    } else {
+      self.el.style.display = 'none';
     }
-
-    if (canPost) {
-        var queue = [];
-        window.addEventListener('message', function (ev) {
-            if (ev.source === window && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
-    }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
-
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
+  });
 }
 
-// TODO(shtylman)
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
+Inventory.prototype.createHTML = function(){
+  this.el = document.createElement('ul');
+
+  var h3 = document.createElement('h3');
+  h3.innerHTML = 'inventory';
+
+  this.el.appendChild(h3);
+
+  document.body.appendChild(this.el);
 };
 
-},{}],15:[function(require,module,exports){
-(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
+Inventory.prototype.add = function(item){
+  var self = this;
+
+  this.findItem(item.name, function(exists, items){
+
+    if (exists === false){
+
+      items[item.name] = {
+        item: item,
+        quantity: 1
+      }
+
+      var li = document.createElement('li');
+      li.innerHTML = item.name;
+      li.id = item.name;
+      self.el.appendChild(li);
+
+    } else {
+      items[item.name].quantity += 1;
+    }
+
+  });
+};
+
+Inventory.prototype.remove = function(item){
+  var self = this;
+
+  this.findItem(item.name, function(exists, items){
+    if (exists){
+      if (items[item.name].quantity > 1){
+        items[item.name].quantity -= 1;
+      } else {
+        delete items[item.name];
+        var itemEl = document.getElementById(item.name);
+        self.el.removeChild(itemEl);
+      }
+    }
+  });
+};
+
+Inventory.prototype.list = function(){
+  return this.game.inventory.join(', ');
+};
+
+Inventory.prototype.findItem = function(itemNameToFind, callback){
+  if (this.isEmpty()){
+    return callback(false, this.game.inventory);
+  }
+
+  this.each(function(item, items){
+    if (itemNameToFind === item){
+      return callback(true, items);
+    } else {
+      return callback(false, items);
+    }
+  });
+};
+
+Inventory.prototype.hasItem = function hasItem(itemName, callback){
+  this.findItem(itemName, function(exists, items){
+    if (exists){
+      return callback(true);
+    } else {
+      return callback(false);
+    }
+  });
+};
+
+Inventory.prototype.each = function each(callback){
+  for (var item in this.game.inventory){
+    callback(item, this.game.inventory);
+  }
+};
+
+Inventory.prototype.isEmpty = function isEmpty(){
+  var inventory = this.game.inventory;
+
+  for(var item in inventory) {
+    if(inventory.hasOwnProperty(item)){
+      return false;
+    }      
+  }
+  return true;
+};
+},{"inherits":19}],4:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Item;
+inherits(Item, Entity);
+
+function Item(options){
+  this.name = options.name;
+
+  this.position = {
+    x: options.position.x,
+    y: options.position.y
+  };
+
+  this.size = {
+    x: 50,
+    y: 50
+  };
+
+  this.color = options.color;
+}
+},{"crtrdg-entity":9,"inherits":19}],5:[function(require,module,exports){
+module.exports = Log;
+
+function Log(options){
+  this.el = document.createElement('ul');
+
+  if (options.appendTo){
+    var parent = document.querySelector(options.appendTo);
+    parent.appendChild(this.el);
+  } else {
+    document.body.appendChild(this.el);
+  }
+  this.el.id = options.id || 'log';
+
+/*
+  this.el.style.overflow = 'scroll';
+  this.el.style.display = 'block';
+  this.el.style.position = 'fixed';
+  this.el.style.zIndex = '1111';
+  this.el.style.top = '0'
+  this.el.style.width = options.width || '';
+  this.el.style.height = options.height || '';
+  */
+}
+
+Log.prototype.add = function(html){
+  var item =  document.createElement('li');
+  item.innerHTML = html;
+  item.style.listStyleType = 'none';
+  this.el.appendChild(item);
+  this.el.scrollTop = this.el.scrollHeight;
+};
+
+Log.prototype.clear = function(){
+  this.el.innerHTML = '';
+};
+},{}],6:[function(require,module,exports){
+randomColor = require('random-color');
+
+module.exports = Map;
+
+function Map(game, width, height){
+  this.game = game;
+  this.width = width;
+  this.height = height;
+  this.image = null;
+}
+
+Map.prototype.generate = function(callback){
+  var ctx = document.createElement('canvas').getContext('2d');
+
+  ctx.canvas.width = this.width;
+  ctx.canvas.height = this.height;
+
+  var rows = parseInt(this.width/16+1);
+  var columns = parseInt(this.height/16+1);
+
+  ctx.save();     
+  for (var x = 0, i = 0; i < rows; x+=16, i++) {
+    for (var y = 0, j=0; j < columns; y+=16, j++) { 
+      ctx.beginPath();      
+      ctx.fillStyle = randomColor(155);                
+      ctx.rect(x, y, 15, 15);        
+      ctx.fill();
+      ctx.closePath();
+    }
+    
+  }   
+  ctx.restore();  
+  
+  // store the generate map as this image texture
+  this.image = new Image();
+  this.image.src = ctx.canvas.toDataURL("image/png");         
+  
+  // clear context
+  ctx = null;
+}
+
+// draw the map adjusted to camera
+Map.prototype.draw = function(context, xView, yView){         
+  context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
+}
+},{"random-color":20}],7:[function(require,module,exports){
+var process=require("__browserify_process");if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
 var isArray = typeof Array.isArray === 'function'
@@ -786,826 +895,72 @@ EventEmitter.prototype.listeners = function(type) {
   return this._events[type];
 };
 
-})(require("__browserify_process"))
-},{"__browserify_process":14}],5:[function(require,module,exports){
-var inherits = require('inherits');
-
-module.exports = Inventory;
-
-function Inventory(game){
-  this.game = game;
-  this.game.inventory = {};
-
-  this.createHTML();
-
-  var self = this;
-
-  this.game.on('update', function(interval){
-    if (self.isEmpty() === false){
-      self.el.style.display = 'block';
-    } else {
-      self.el.style.display = 'none';
-    }
-  });
-}
-
-Inventory.prototype.createHTML = function(){
-  this.el = document.createElement('ul');
-
-  var h3 = document.createElement('h3');
-  h3.innerHTML = 'inventory';
-
-  this.el.appendChild(h3);
-
-  document.body.appendChild(this.el);
+EventEmitter.listenerCount = function(emitter, type) {
+  var ret;
+  if (!emitter._events || !emitter._events[type])
+    ret = 0;
+  else if (typeof emitter._events[type] === 'function')
+    ret = 1;
+  else
+    ret = emitter._events[type].length;
+  return ret;
 };
 
-Inventory.prototype.add = function(item){
-  var self = this;
+},{"__browserify_process":8}],8:[function(require,module,exports){
+// shim for using process in browser
 
-  this.findItem(item.name, function(exists, items){
+var process = module.exports = {};
 
-    if (exists === false){
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
 
-      items[item.name] = {
-        item: item,
-        quantity: 1
-      }
-
-      var li = document.createElement('li');
-      li.innerHTML = item.name;
-      li.id = item.name;
-      self.el.appendChild(li);
-
-    } else {
-      items[item.name].quantity += 1;
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
     }
 
-  });
-};
+    if (canPost) {
+        var queue = [];
+        window.addEventListener('message', function (ev) {
+            if (ev.source === window && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
 
-Inventory.prototype.remove = function(item){
-  var self = this;
-
-  this.findItem(item.name, function(exists, items){
-    if (exists){
-      if (items[item.name].quantity > 1){
-        items[item.name].quantity -= 1;
-      } else {
-        delete items[item.name];
-        var itemEl = document.getElementById(item.name);
-        self.el.removeChild(itemEl);
-      }
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
     }
-  });
+
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
+})();
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+}
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
 };
 
-Inventory.prototype.list = function(){
-  return this.game.inventory.join(', ');
-};
-
-Inventory.prototype.findItem = function(itemNameToFind, callback){
-  if (this.isEmpty()){
-    return callback(false, this.game.inventory);
-  }
-
-  this.each(function(item, items){
-    if (itemNameToFind === item){
-      return callback(true, items);
-    } else {
-      return callback(false, items);
-    }
-  });
-};
-
-Inventory.prototype.hasItem = function hasItem(itemName, callback){
-  this.findItem(itemName, function(exists, items){
-    if (exists){
-      return callback(true);
-    } else {
-      return callback(false);
-    }
-  });
-};
-
-Inventory.prototype.each = function each(callback){
-  for (var item in this.game.inventory){
-    callback(item, this.game.inventory);
-  }
-};
-
-Inventory.prototype.isEmpty = function isEmpty(){
-  var inventory = this.game.inventory;
-
-  for(var item in inventory) {
-    if(inventory.hasOwnProperty(item)){
-      return false;
-    }      
-  }
-  return true;
-};
-},{"inherits":16}],6:[function(require,module,exports){
-var inherits = require('inherits');
-var Entity = require('crtrdg-entity');
-
-module.exports = Item;
-inherits(Item, Entity);
-
-function Item(options){
-  this.name = options.name;
-
-  this.position = {
-    x: options.position.x,
-    y: options.position.y
-  };
-
-  this.size = {
-    x: 50,
-    y: 50
-  };
-
-  this.color = options.color;
-}
-},{"inherits":16,"crtrdg-entity":17}],7:[function(require,module,exports){
-var inherits = require('inherits');
-var Entity = require('crtrdg-entity');
-
-module.exports = Player;
-inherits(Player, Entity);
-
-function Player(options){
-  this.position = { 
-    x: options.position.x, 
-    y: options.position.y 
-  };
-
-  this.size = {
-    x: options.size.x,
-    y: options.size.y
-  };
-
-  this.velocity = {
-    x: 0,
-    y: 0
-  };
-
-  this.health = options.health;
-  this.coins = 0
-  this.direction = 'right';
-  this.scrunched = false;
-  
-  this.friction = options.friction;
-  this.speed = options.speed;
-  this.color = options.color;
-}
-
-Player.prototype.move = function(){
-  this.position.x += this.velocity.x * this.friction;
-  this.position.y += this.velocity.y * this.friction;
-};
-
-Player.prototype.boundaries = function(){
-  if (this.position.x <= 0){
-    this.position.x = 0;
-  }
-
-  if (this.position.x >= 3000 - this.size.x){
-    this.position.x = 3000 - this.size.x;
-  }
-
-  if (this.position.y <= 0){
-    this.position.y = 0;
-  }
-
-  if (this.position.y >= 320 - this.size.y){
-    this.position.y = 320 - this.size.y;
-    this.jumping = false;
-  }
-};
-
-Player.prototype.input = function(keysdown){
-
-  if ('A' in keysdown){
-    this.direction = 'left';
-    this.velocity.x = -this.speed;
-    if (!this.jumping){
-      this.jumping = true;
-      if ('W' in keysdown){
-        this.velocity.y = -15;        
-      } else if ('S' in keysdown){
-        this.scrunched = true;
-        this.velocity.x = -2
-        this.velocity.y = 0;
-      } else {
-        this.velocity.y = -5;
-      }
-    }
-  }
-
-  if ('D' in keysdown){
-    this.direction = 'right';
-    this.velocity.x = this.speed;
-    if (!this.jumping){
-      this.jumping = true;
-      if ('W' in keysdown){
-        this.velocity.y = -15;        
-      } else if ('S' in keysdown){
-        this.scrunched = true;
-        this.velocity.x = 2
-        this.velocity.y = 0;
-      } else {
-        this.velocity.y = -5;
-      }
-    }
-  }
-
-  if ('W' in keysdown){
-    if (!this.jumping){
-      this.jumping = true;
-      this.velocity.y = -15;
-    }
-  }
-
-  if ('S' in keysdown){
-    this.scrunched = true;
-  }
-};
-},{"inherits":16,"crtrdg-entity":17}],8:[function(require,module,exports){
-randomColor = require('random-color');
-
-module.exports = Map;
-
-function Map(game, width, height){
-  this.game = game;
-  this.width = width;
-  this.height = height;
-  this.image = null;
-}
-
-Map.prototype.generate = function(callback){
-  var ctx = document.createElement('canvas').getContext('2d');
-
-  ctx.canvas.width = this.width;
-  ctx.canvas.height = this.height;
-
-  var rows = parseInt(this.width/16+1);
-  var columns = parseInt(this.height/16+1);
-
-  ctx.save();     
-  for (var x = 0, i = 0; i < rows; x+=16, i++) {
-    for (var y = 0, j=0; j < columns; y+=16, j++) { 
-      ctx.beginPath();      
-      ctx.fillStyle = randomColor(155);                
-      ctx.rect(x, y, 15, 15);        
-      ctx.fill();
-      ctx.closePath();
-    }
-    
-  }   
-  ctx.restore();  
-  
-  // store the generate map as this image texture
-  this.image = new Image();
-  this.image.src = ctx.canvas.toDataURL("image/png");         
-  
-  // clear context
-  ctx = null;
-}
-
-// draw the map adjusted to camera
-Map.prototype.draw = function(context, xView, yView){         
-  context.drawImage(this.image, 0, 0, this.image.width, this.image.height, -xView, -yView, this.image.width, this.image.height);
-}
-},{"random-color":18}],16:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],18:[function(require,module,exports){
-module.exports = color;
-
-function num(cap){
-  return Math.floor( Math.random() * cap );
-}
-
-function color(cap){
-  cap || ( cap = 255 );
-  return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
-}
-
-},{}],19:[function(require,module,exports){
-(function(){var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
-  , isOSX = /OS X/.test(ua)
-  , isOpera = /Opera/.test(ua)
-  , maybeFirefox = !/like Gecko/.test(ua) && !isOpera
-
-var i, output = module.exports = {
-  0:  isOSX ? '<menu>' : '<UNK>'
-, 1:  '<mouse 1>'
-, 2:  '<mouse 2>'
-, 3:  '<break>'
-, 4:  '<mouse 3>'
-, 5:  '<mouse 4>'
-, 6:  '<mouse 5>'
-, 8:  '<backspace>'
-, 9:  '<tab>'
-, 12: '<clear>'
-, 13: '<enter>'
-, 16: '<shift>'
-, 17: '<control>'
-, 18: '<alt>'
-, 19: '<pause>'
-, 20: '<caps-lock>'
-, 21: '<ime-hangul>'
-, 23: '<ime-junja>'
-, 24: '<ime-final>'
-, 25: '<ime-kanji>'
-, 27: '<escape>'
-, 28: '<ime-convert>'
-, 29: '<ime-nonconvert>'
-, 30: '<ime-accept>'
-, 31: '<ime-mode-change>'
-, 27: '<escape>'
-, 32: '<space>'
-, 33: '<page-up>'
-, 34: '<page-down>'
-, 35: '<end>'
-, 36: '<home>'
-, 37: '<left>'
-, 38: '<up>'
-, 39: '<right>'
-, 40: '<down>'
-, 41: '<select>'
-, 42: '<print>'
-, 43: '<execute>'
-, 44: '<snapshot>'
-, 45: '<insert>'
-, 46: '<delete>'
-, 47: '<help>'
-, 91: '<meta>'  // meta-left -- no one handles left and right properly, so we coerce into one.
-, 92: '<meta>'  // meta-right
-, 93: isOSX ? '<meta>' : '<menu>'      // chrome,opera,safari all report this for meta-right (osx mbp).
-, 95: '<sleep>'
-, 106: '<num-*>'
-, 107: '<num-+>'
-, 108: '<num-enter>'
-, 109: '<num-->'
-, 110: '<num-.>'
-, 111: '<num-/>'
-, 144: '<num-lock>'
-, 145: '<scroll-lock>'
-, 160: '<shift-left>'
-, 161: '<shift-right>'
-, 162: '<control-left>'
-, 163: '<control-right>'
-, 164: '<alt-left>'
-, 165: '<alt-right>'
-, 166: '<browser-back>'
-, 167: '<browser-forward>'
-, 168: '<browser-refresh>'
-, 169: '<browser-stop>'
-, 170: '<browser-search>'
-, 171: '<browser-favorites>'
-, 172: '<browser-home>'
-
-  // ff/osx reports '<volume-mute>' for '-'
-, 173: isOSX && maybeFirefox ? '-' : '<volume-mute>'
-, 174: '<volume-down>'
-, 175: '<volume-up>'
-, 176: '<next-track>'
-, 177: '<prev-track>'
-, 178: '<stop>'
-, 179: '<play-pause>'
-, 180: '<launch-mail>'
-, 181: '<launch-media-select>'
-, 182: '<launch-app 1>'
-, 183: '<launch-app 2>'
-, 186: ';'
-, 187: '='
-, 188: ','
-, 189: '-'
-, 190: '.'
-, 191: '/'
-, 192: '`'
-, 219: '['
-, 220: '\\'
-, 221: ']'
-, 222: "'"
-, 223: '<meta>'
-, 224: '<meta>'       // firefox reports meta here.
-, 226: '<alt-gr>'
-, 229: '<ime-process>'
-, 231: isOpera ? '`' : '<unicode>'
-, 246: '<attention>'
-, 247: '<crsel>'
-, 248: '<exsel>'
-, 249: '<erase-eof>'
-, 250: '<play>'
-, 251: '<zoom>'
-, 252: '<no-name>'
-, 253: '<pa-1>'
-, 254: '<clear>'
-}
-
-for(i = 58; i < 65; ++i) {
-  output[i] = String.fromCharCode(i)
-}
-
-// 0-9
-for(i = 48; i < 58; ++i) {
-  output[i] = (i - 48)+''
-}
-
-// A-Z
-for(i = 65; i < 91; ++i) {
-  output[i] = String.fromCharCode(i)
-}
-
-// num0-9
-for(i = 96; i < 107; ++i) {
-  output[i] = '<num-'+(i - 96)+'>'
-}
-
-// F1-F24
-for(i = 112; i < 136; ++i) {
-  output[i] = 'F'+(i-111)
-}
-
-})()
 },{}],9:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var requestAnimationFrame = require('raf');
-var inherits = require('inherits');
-
-module.exports = Game;
-inherits(Game, EventEmitter);
-
-function Game(options){
-  this.canvas = document.getElementById(options.canvasId);
-  this.context = this.canvas.getContext('2d');
-  this.width = this.canvas.width = options.width;
-  this.height = this.canvas.height = options.height;
-  this.backgroundColor = options.backgroundColor;
-
-  if (options.maxListeners){
-    this.setMaxListeners(options.maxListeners);
-  } else {
-    this.setMaxListeners(0);
-  }
-
-  this.loop();
-}
-
-Game.prototype.loop = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-};
-
-Game.prototype.pause = function(){
-  this.ticker.pause();
-  this.emit('pause');
-};
-
-Game.prototype.resume = function(){
-  var self = this;
-
-  this.ticker = requestAnimationFrame(this.canvas);
-  this.ticker.on('data', function(interval) {
-    self.update(interval);
-    self.draw();
-  });
-
-  this.emit('resume');
-};
-
-Game.prototype.update = function(interval){
-  if (this.currentScene){
-    this.sceneManager.update(interval);
-  }
-  this.emit('update', interval);
-};
-
-Game.prototype.draw = function(){
-  if (this.currentScene){
-    this.context.fillStyle = this.currentScene.backgroundColor;
-    this.sceneManager.draw(this.context);
-
-  } else {
-    this.context.fillStyle = this.backgroundColor;
-  }
-  this.context.fillRect(0, 0, this.width, this.height);
-  this.emit('draw', this.context)
-};
-},{"events":15,"raf":20,"inherits":16}],10:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-var vkey = require('vkey');
-
-module.exports = Keyboard;
-inherits(Keyboard, EventEmitter);
-
-function Keyboard(game){
-  this.game = game || {};
-  this.keysDown = {};
-  this.initializeListeners();
-}
-
-Keyboard.prototype.initializeListeners = function(){
-  var self = this;
-
-  document.addEventListener('keydown', function(e){
-    self.emit('keydown', vkey[e.keyCode]);
-    self.keysDown[vkey[e.keyCode]] = true;
-
-    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
-      e.preventDefault();
-    }
-  }, false);
-
-  document.addEventListener('keyup', function(e){
-    self.emit('keyup', vkey[e.keyCode]);
-    delete self.keysDown[vkey[e.keyCode]];
-  }, false);
-};
-},{"events":15,"vkey":19,"inherits":16}],11:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-
-module.exports = Mouse;
-inherits(Mouse, EventEmitter);
-
-function Mouse(game){
-  this.game = game || {};
-  this.el = game.canvas;
-  this.initializeListeners();
-}
-
-Mouse.prototype.initializeListeners = function(){
-  var self = this;
-
-  this.el.addEventListener('click', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('click', location);
-    })
-  });
-
-  this.el.addEventListener('mousedown', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousedown', location);
-    })
-  });
-
-  this.el.addEventListener('mouseup', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mouseup', location);
-    })
-  });
-
-  this.el.addEventListener('mousemove', function(e){
-    self.calculateOffset(e, function(location){
-      self.emit('mousemove', location);
-    })
-  });
-};
-
-Mouse.prototype.calculateOffset = function(e, callback){
-  var canvas = e.target;
-  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
-  var offsetY = canvas.offsetTop - canvas.scrollTop;
-
-  var location = {
-    x: e.pageX - offsetX,
-    y: e.pageY - offsetY
-  };
-
-  callback(location);
-}
-
-},{"events":15,"inherits":16}],12:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-
-module.exports = SceneManager;
-
-function SceneManager(game){
-  this.game = game || {};
-  this.game.scenes = [];
-  this.game.sceneManager = this;
-  this.game.currentScene = null;
-  this.game.previousScene = null;
-
-  return this;
-};
-
-SceneManager.prototype.add = function(scene){
-  this.game.scenes.push(scene);
-
-  return this;
-};
-
-SceneManager.prototype.create = function(options){
-  var scene = new Scene(options);
-  this.add(scene);
-  return scene;
-};
-
-SceneManager.prototype.set = function(scene){
-  if (this.game.currentScene !== null) {
-    this.game.currentScene.emit('end');
-  }
-  this.game.currentScene = scene;
-  scene.emit('start', scene);
-};
-
-SceneManager.prototype.get = function(sceneName){
-  for (var i=0; i<this.game.scenes.length; i++){
-    if (this.game.scenes[i].name === sceneName) {
-      return this.game.scenes[i];
-    }
-  }
-};
-
-SceneManager.prototype.update = function(interval){
-  this.game.currentScene.update(interval);
-};
-
-SceneManager.prototype.draw = function(context){
-  this.game.currentScene.draw(context);
-};
-
-
-exports.Scene = Scene;
-inherits(Scene, EventEmitter);
-
-function Scene(options){
-  this.name = options.name;
-  this.backgroundColor = options.backgroundColor;
-
-  return this;
-}
-
-Scene.prototype.update = function(interval){
-  this.emit('update', interval)
-};
-
-Scene.prototype.draw = function(context){
-  this.emit('draw', context);
-};
-
-},{"events":15,"inherits":16}],20:[function(require,module,exports){
-(function(){module.exports = raf
-
-var EE = require('events').EventEmitter
-  , global = typeof window === 'undefined' ? this : window
-  , now = global.performance && global.performance.now ? function() {
-    return performance.now()
-  } : Date.now || function () {
-    return +new Date()
-  }
-
-var _raf =
-  global.requestAnimationFrame ||
-  global.webkitRequestAnimationFrame ||
-  global.mozRequestAnimationFrame ||
-  global.msRequestAnimationFrame ||
-  global.oRequestAnimationFrame ||
-  (global.setImmediate ? function(fn, el) {
-    setImmediate(fn)
-  } :
-  function(fn, el) {
-    setTimeout(fn, 0)
-  })
-
-function raf(el) {
-  var now = raf.now()
-    , ee = new EE
-
-  ee.pause = function() { ee.paused = true }
-  ee.resume = function() { ee.paused = false }
-
-  _raf(iter, el)
-
-  return ee
-
-  function iter(timestamp) {
-    var _now = raf.now()
-      , dt = _now - now
-    
-    now = _now
-
-    ee.emit('data', dt)
-
-    if(!ee.paused) {
-      _raf(iter, el)
-    }
-  }
-}
-
-raf.polyfill = _raf
-raf.now = now
-
-
-})()
-},{"events":15}],13:[function(require,module,exports){
-var EventEmitter = require('events').EventEmitter;
-var inherits = require('inherits');
-
-module.exports = function (game){
-  return new Goals(game);
-};
-
-function Goals(game){
-  this.game = game || {};
-  this.game.goals = {};
-  this.game.activeGoals = {};
-  this.game.metGoals = {};
-}
-
-Goals.prototype.create = function create(settings){
-  var goal = new Goal(settings);
-  this.game.goals[goal.name] = goal;
-
-  return goal;
-};
-
-Goals.prototype.all = function all(){
-  return this.game.goals;
-};
-
-Goals.prototype.find = function find(goalName, callback){
-  for (var goal in this.game.goals){
-    if (goalName === goal.name){
-      return callback(true, goal, this.game.goals);
-    }
-    else {
-      return callback(false);
-    }
-  }
-};
-
-Goals.prototype.set = function set(goal){
-  var oldGoal = this.game.activeGoal;
-
-  this.game.activeGoal = goal;
-  this.game.activeGoal.emit('active', this.game.activeGoal);
-}
-
-Goals.prototype.met = function met(goal){
-  goal.emit('met', goal);
-};
-
-Goals.prototype.isActive = function isActive(goal){
-  if (goal.name === this.game.activeGoal.name){
-    return true;
-  } else {
-    return false;
-  }
-};
-
-Goals.prototype.isMet = function isMet(_goal){
-  var goalName = _goal.name;
-
-  for (var goal in this.game.metGoals){
-    if (goalName === goal.name){
-      return callback(true, goal, this.game.metGoals);
-    }
-    else {
-      return callback(false);
-    }
-  }
-}
-
-inherits(Goal, EventEmitter);
-
-function Goal(settings){
-  this.name = settings.name;
-}
-},{"events":15,"inherits":16}],17:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var inherits = require('inherits');
 var aabb = require('aabb-2d');
@@ -1696,7 +1051,7 @@ Entity.prototype.setBoundingBox = function(){
   this.boundingBox = aabb([this.position.x, this.position.y], [this.size.x, this.size.y]);  
 };
 
-},{"events":15,"aabb-2d":21,"inherits":16}],21:[function(require,module,exports){
+},{"aabb-2d":10,"events":7,"inherits":19}],10:[function(require,module,exports){
 module.exports = AABB
 
 var vec2 = require('gl-matrix').vec2
@@ -1791,8 +1146,8 @@ proto.union = function(aabb) {
   return new AABB([base_x, base_y], [max_x - base_x, max_y - base_y])
 }
 
-},{"gl-matrix":22}],22:[function(require,module,exports){
-(function(){/**
+},{"gl-matrix":11}],11:[function(require,module,exports){
+/**
  * @fileoverview gl-matrix - High performance matrix and vector operations
  * @author Brandon Jones
  * @author Colin MacKenzie IV
@@ -4864,6 +4219,659 @@ if(typeof(exports) !== 'undefined') {
   })(shim.exports);
 })();
 
-})()
-},{}]},{},[4])
+},{}],12:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var requestAnimationFrame = require('raf');
+var inherits = require('inherits');
+
+module.exports = Game;
+inherits(Game, EventEmitter);
+
+function Game(options){
+  this.canvas = document.getElementById(options.canvasId);
+  this.context = this.canvas.getContext('2d');
+  this.width = this.canvas.width = options.width;
+  this.height = this.canvas.height = options.height;
+  this.backgroundColor = options.backgroundColor;
+
+  if (options.maxListeners){
+    this.setMaxListeners(options.maxListeners);
+  } else {
+    this.setMaxListeners(0);
+  }
+
+  this.loop();
+}
+
+Game.prototype.loop = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+};
+
+Game.prototype.pause = function(){
+  this.ticker.pause();
+  this.emit('pause');
+};
+
+Game.prototype.resume = function(){
+  var self = this;
+
+  this.ticker = requestAnimationFrame(this.canvas);
+  this.ticker.on('data', function(interval) {
+    self.update(interval);
+    self.draw();
+  });
+
+  this.emit('resume');
+};
+
+Game.prototype.update = function(interval){
+  if (this.currentScene){
+    this.sceneManager.update(interval);
+  }
+  this.emit('update', interval);
+};
+
+Game.prototype.draw = function(){
+  if (this.currentScene){
+    this.context.fillStyle = this.currentScene.backgroundColor;
+    this.sceneManager.draw(this.context);
+
+  } else {
+    this.context.fillStyle = this.backgroundColor;
+  }
+  this.context.fillRect(0, 0, this.width, this.height);
+  this.emit('draw', this.context)
+};
+},{"events":7,"inherits":19,"raf":13}],13:[function(require,module,exports){
+module.exports = raf
+
+var EE = require('events').EventEmitter
+  , global = typeof window === 'undefined' ? this : window
+  , now = global.performance && global.performance.now ? function() {
+    return performance.now()
+  } : Date.now || function () {
+    return +new Date()
+  }
+
+var _raf =
+  global.requestAnimationFrame ||
+  global.webkitRequestAnimationFrame ||
+  global.mozRequestAnimationFrame ||
+  global.msRequestAnimationFrame ||
+  global.oRequestAnimationFrame ||
+  (global.setImmediate ? function(fn, el) {
+    setImmediate(fn)
+  } :
+  function(fn, el) {
+    setTimeout(fn, 0)
+  })
+
+function raf(el) {
+  var now = raf.now()
+    , ee = new EE
+
+  ee.pause = function() { ee.paused = true }
+  ee.resume = function() { ee.paused = false }
+
+  _raf(iter, el)
+
+  return ee
+
+  function iter(timestamp) {
+    var _now = raf.now()
+      , dt = _now - now
+    
+    now = _now
+
+    ee.emit('data', dt)
+
+    if(!ee.paused) {
+      _raf(iter, el)
+    }
+  }
+}
+
+raf.polyfill = _raf
+raf.now = now
+
+
+},{"events":7}],14:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+
+module.exports = function (game){
+  return new Goals(game);
+};
+
+function Goals(game){
+  this.game = game || {};
+  this.game.goals = {};
+  this.game.activeGoals = {};
+  this.game.metGoals = {};
+}
+
+Goals.prototype.create = function create(settings){
+  var goal = new Goal(settings);
+  this.game.goals[goal.name] = goal;
+
+  return goal;
+};
+
+Goals.prototype.all = function all(){
+  return this.game.goals;
+};
+
+Goals.prototype.find = function find(goalName, callback){
+  for (var goal in this.game.goals){
+    if (goalName === goal.name){
+      return callback(true, goal, this.game.goals);
+    }
+    else {
+      return callback(false);
+    }
+  }
+};
+
+Goals.prototype.set = function set(goal){
+  var oldGoal = this.game.activeGoal;
+
+  this.game.activeGoal = goal;
+  this.game.activeGoal.emit('active', this.game.activeGoal);
+}
+
+Goals.prototype.met = function met(goal){
+  goal.emit('met', goal);
+};
+
+Goals.prototype.isActive = function isActive(goal){
+  if (goal.name === this.game.activeGoal.name){
+    return true;
+  } else {
+    return false;
+  }
+};
+
+Goals.prototype.isMet = function isMet(_goal){
+  var goalName = _goal.name;
+
+  for (var goal in this.game.metGoals){
+    if (goalName === goal.name){
+      return callback(true, goal, this.game.metGoals);
+    }
+    else {
+      return callback(false);
+    }
+  }
+}
+
+inherits(Goal, EventEmitter);
+
+function Goal(settings){
+  this.name = settings.name;
+}
+},{"events":7,"inherits":19}],15:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+var vkey = require('vkey');
+
+module.exports = Keyboard;
+inherits(Keyboard, EventEmitter);
+
+function Keyboard(game){
+  this.game = game || {};
+  this.keysDown = {};
+  this.initializeListeners();
+}
+
+Keyboard.prototype.initializeListeners = function(){
+  var self = this;
+
+  document.addEventListener('keydown', function(e){
+    self.emit('keydown', vkey[e.keyCode]);
+    self.keysDown[vkey[e.keyCode]] = true;
+
+    if (e.keyCode === 40 || e.keyCode === 38 || e.keyCode === 37 || e.keyCode === 39 || e.keyCode === 32) {
+      e.preventDefault();
+    }
+  }, false);
+
+  document.addEventListener('keyup', function(e){
+    self.emit('keyup', vkey[e.keyCode]);
+    delete self.keysDown[vkey[e.keyCode]];
+  }, false);
+};
+},{"events":7,"inherits":19,"vkey":16}],16:[function(require,module,exports){
+var ua = typeof window !== 'undefined' ? window.navigator.userAgent : ''
+  , isOSX = /OS X/.test(ua)
+  , isOpera = /Opera/.test(ua)
+  , maybeFirefox = !/like Gecko/.test(ua) && !isOpera
+
+var i, output = module.exports = {
+  0:  isOSX ? '<menu>' : '<UNK>'
+, 1:  '<mouse 1>'
+, 2:  '<mouse 2>'
+, 3:  '<break>'
+, 4:  '<mouse 3>'
+, 5:  '<mouse 4>'
+, 6:  '<mouse 5>'
+, 8:  '<backspace>'
+, 9:  '<tab>'
+, 12: '<clear>'
+, 13: '<enter>'
+, 16: '<shift>'
+, 17: '<control>'
+, 18: '<alt>'
+, 19: '<pause>'
+, 20: '<caps-lock>'
+, 21: '<ime-hangul>'
+, 23: '<ime-junja>'
+, 24: '<ime-final>'
+, 25: '<ime-kanji>'
+, 27: '<escape>'
+, 28: '<ime-convert>'
+, 29: '<ime-nonconvert>'
+, 30: '<ime-accept>'
+, 31: '<ime-mode-change>'
+, 27: '<escape>'
+, 32: '<space>'
+, 33: '<page-up>'
+, 34: '<page-down>'
+, 35: '<end>'
+, 36: '<home>'
+, 37: '<left>'
+, 38: '<up>'
+, 39: '<right>'
+, 40: '<down>'
+, 41: '<select>'
+, 42: '<print>'
+, 43: '<execute>'
+, 44: '<snapshot>'
+, 45: '<insert>'
+, 46: '<delete>'
+, 47: '<help>'
+, 91: '<meta>'  // meta-left -- no one handles left and right properly, so we coerce into one.
+, 92: '<meta>'  // meta-right
+, 93: isOSX ? '<meta>' : '<menu>'      // chrome,opera,safari all report this for meta-right (osx mbp).
+, 95: '<sleep>'
+, 106: '<num-*>'
+, 107: '<num-+>'
+, 108: '<num-enter>'
+, 109: '<num-->'
+, 110: '<num-.>'
+, 111: '<num-/>'
+, 144: '<num-lock>'
+, 145: '<scroll-lock>'
+, 160: '<shift-left>'
+, 161: '<shift-right>'
+, 162: '<control-left>'
+, 163: '<control-right>'
+, 164: '<alt-left>'
+, 165: '<alt-right>'
+, 166: '<browser-back>'
+, 167: '<browser-forward>'
+, 168: '<browser-refresh>'
+, 169: '<browser-stop>'
+, 170: '<browser-search>'
+, 171: '<browser-favorites>'
+, 172: '<browser-home>'
+
+  // ff/osx reports '<volume-mute>' for '-'
+, 173: isOSX && maybeFirefox ? '-' : '<volume-mute>'
+, 174: '<volume-down>'
+, 175: '<volume-up>'
+, 176: '<next-track>'
+, 177: '<prev-track>'
+, 178: '<stop>'
+, 179: '<play-pause>'
+, 180: '<launch-mail>'
+, 181: '<launch-media-select>'
+, 182: '<launch-app 1>'
+, 183: '<launch-app 2>'
+, 186: ';'
+, 187: '='
+, 188: ','
+, 189: '-'
+, 190: '.'
+, 191: '/'
+, 192: '`'
+, 219: '['
+, 220: '\\'
+, 221: ']'
+, 222: "'"
+, 223: '<meta>'
+, 224: '<meta>'       // firefox reports meta here.
+, 226: '<alt-gr>'
+, 229: '<ime-process>'
+, 231: isOpera ? '`' : '<unicode>'
+, 246: '<attention>'
+, 247: '<crsel>'
+, 248: '<exsel>'
+, 249: '<erase-eof>'
+, 250: '<play>'
+, 251: '<zoom>'
+, 252: '<no-name>'
+, 253: '<pa-1>'
+, 254: '<clear>'
+}
+
+for(i = 58; i < 65; ++i) {
+  output[i] = String.fromCharCode(i)
+}
+
+// 0-9
+for(i = 48; i < 58; ++i) {
+  output[i] = (i - 48)+''
+}
+
+// A-Z
+for(i = 65; i < 91; ++i) {
+  output[i] = String.fromCharCode(i)
+}
+
+// num0-9
+for(i = 96; i < 107; ++i) {
+  output[i] = '<num-'+(i - 96)+'>'
+}
+
+// F1-F24
+for(i = 112; i < 136; ++i) {
+  output[i] = 'F'+(i-111)
+}
+
+},{}],17:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+
+module.exports = Mouse;
+inherits(Mouse, EventEmitter);
+
+function Mouse(game){
+  this.game = game || {};
+  this.el = game.canvas;
+  this.initializeListeners();
+}
+
+Mouse.prototype.initializeListeners = function(){
+  var self = this;
+
+  this.el.addEventListener('click', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('click', location);
+    })
+  });
+
+  this.el.addEventListener('mousedown', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousedown', location);
+    })
+  });
+
+  this.el.addEventListener('mouseup', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mouseup', location);
+    })
+  });
+
+  this.el.addEventListener('mousemove', function(e){
+    self.calculateOffset(e, function(location){
+      self.emit('mousemove', location);
+    })
+  });
+};
+
+Mouse.prototype.calculateOffset = function(e, callback){
+  var canvas = e.target;
+  var offsetX = canvas.offsetLeft - canvas.scrollLeft;
+  var offsetY = canvas.offsetTop - canvas.scrollTop;
+
+  var location = {
+    x: e.pageX - offsetX,
+    y: e.pageY - offsetY
+  };
+
+  callback(location);
+}
+
+},{"events":7,"inherits":19}],18:[function(require,module,exports){
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('inherits');
+
+module.exports = SceneManager;
+
+function SceneManager(game){
+  this.game = game || {};
+  this.game.scenes = [];
+  this.game.sceneManager = this;
+  this.game.currentScene = null;
+  this.game.previousScene = null;
+
+  return this;
+};
+
+SceneManager.prototype.add = function(scene){
+  this.game.scenes.push(scene);
+
+  return this;
+};
+
+SceneManager.prototype.create = function(options){
+  var scene = new Scene(options);
+  this.add(scene);
+  return scene;
+};
+
+SceneManager.prototype.set = function(scene){
+  if (this.game.currentScene !== null) {
+    this.game.currentScene.emit('end');
+  }
+  this.game.currentScene = scene;
+  scene.emit('start', scene);
+};
+
+SceneManager.prototype.get = function(sceneName){
+  for (var i=0; i<this.game.scenes.length; i++){
+    if (this.game.scenes[i].name === sceneName) {
+      return this.game.scenes[i];
+    }
+  }
+};
+
+SceneManager.prototype.update = function(interval){
+  this.game.currentScene.update(interval);
+};
+
+SceneManager.prototype.draw = function(context){
+  this.game.currentScene.draw(context);
+};
+
+
+exports.Scene = Scene;
+inherits(Scene, EventEmitter);
+
+function Scene(options){
+  this.name = options.name;
+  this.backgroundColor = options.backgroundColor;
+
+  return this;
+}
+
+Scene.prototype.update = function(interval){
+  this.emit('update', interval)
+};
+
+Scene.prototype.draw = function(context){
+  this.emit('draw', context);
+};
+
+},{"events":7,"inherits":19}],19:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],20:[function(require,module,exports){
+module.exports = color;
+
+function num(cap){
+  return Math.floor( Math.random() * cap );
+}
+
+function color(cap){
+  cap || ( cap = 255 );
+  return 'rgb(' + num(cap) + ', ' + num(cap) + ', ' + num(cap) + ')';
+}
+
+},{}],21:[function(require,module,exports){
+var inherits = require('inherits');
+var Entity = require('crtrdg-entity');
+
+module.exports = Player;
+inherits(Player, Entity);
+
+function Player(options){
+  this.position = { 
+    x: options.position.x, 
+    y: options.position.y 
+  };
+
+  this.size = {
+    x: options.size.x,
+    y: options.size.y
+  };
+
+  this.velocity = {
+    x: 0,
+    y: 0
+  };
+
+  this.health = options.health;
+  this.coins = 0
+  this.direction = 'right';
+  this.scrunched = false;
+  
+  this.friction = options.friction;
+  this.speed = options.speed;
+  this.color = options.color;
+}
+
+Player.prototype.move = function(){
+  this.position.x += this.velocity.x * this.friction;
+  this.position.y += this.velocity.y * this.friction;
+};
+
+Player.prototype.boundaries = function(){
+  if (this.position.x <= 0){
+    this.position.x = 0;
+  }
+
+  if (this.position.x >= 3000 - this.size.x){
+    this.position.x = 3000 - this.size.x;
+  }
+
+  if (this.position.y <= 0){
+    this.position.y = 0;
+  }
+
+  if (this.position.y >= 320 - this.size.y){
+    this.position.y = 320 - this.size.y;
+    this.jumping = false;
+  }
+};
+
+Player.prototype.input = function(keysdown){
+
+  if ('A' in keysdown){
+    this.direction = 'left';
+    this.velocity.x = -this.speed;
+    if (!this.jumping){
+      this.jumping = true;
+      if ('W' in keysdown){
+        this.velocity.y = -15;        
+      } else if ('S' in keysdown){
+        this.scrunched = true;
+        this.velocity.x = -2
+        this.velocity.y = 0;
+      } else {
+        this.velocity.y = -5;
+      }
+    }
+  }
+
+  if ('D' in keysdown){
+    this.direction = 'right';
+    this.velocity.x = this.speed;
+    if (!this.jumping){
+      this.jumping = true;
+      if ('W' in keysdown){
+        this.velocity.y = -15;        
+      } else if ('S' in keysdown){
+        this.scrunched = true;
+        this.velocity.x = 2
+        this.velocity.y = 0;
+      } else {
+        this.velocity.y = -5;
+      }
+    }
+  }
+
+  if ('W' in keysdown){
+    if (!this.jumping){
+      this.jumping = true;
+      this.velocity.y = -15;
+    }
+  }
+
+  if ('S' in keysdown){
+    this.scrunched = true;
+  }
+};
+},{"crtrdg-entity":9,"inherits":19}],22:[function(require,module,exports){
+/* 
+*
+* TEXT UTILITIES
+*
+*/
+
+module.exports = Text;
+
+function Text(options){
+  this.el = document.querySelector(options.el);
+  if (options.html) {
+    this.update(options.html);
+  }
+}
+
+Text.prototype.update = function(text){
+  this.el.innerHTML = text;
+}
+
+Text.prototype.empty = function(text){
+  this.el.innerHTML = '';
+}
+},{}]},{},[2])
 ;

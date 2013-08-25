@@ -96,6 +96,8 @@ canvas#game {
 #log {
   padding: 0px;
   margin: 20px 0px 0px 0px;
+  overflow: scroll;
+  height: 200px;
 }
 
 /* tablet size */
