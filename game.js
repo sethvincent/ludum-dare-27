@@ -80,10 +80,17 @@ var keysdown = keyboard.keysdown;
 keyboard.on('keyup', function(key){
   if (key === 'S'){
     player.scrunched = false;
+    player.velocity.y = -5;
   }
 });
 
 keyboard.on('keydown', function(key){
+  if (key === 'S'){
+    if (!player.scrunched){
+      player.velocity.y = -5;
+    }
+  }
+
   if (key === '<space>' && game.currentScene.name === 'menu'){
     levelManager.set(levelOne);
     game.resume();
