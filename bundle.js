@@ -347,9 +347,15 @@ keyboard.on('keydown', function(key){
     }
   }
 
-  if (key === '<space>' && game.currentScene.name === 'menu'){
-    levels.set(levelOne);
-    game.resume();
+  if (key === '<space>'){
+    if (game.currentScene.name === 'menu'){
+      levels.set(levelOne);
+      game.resume();      
+    }
+
+    if (game.currentScene.name === 'game over'){
+      location.reload();
+    }
   }
 });
 
@@ -418,6 +424,9 @@ var player = new Player({
 player.addTo(game);
 
 player.on('update', function(interval){
+  if (player.health <= 0){
+    player.kill();
+  }
   this.input(keyboard.keysDown);
   this.move();
   this.velocity.x *= this.friction;
@@ -466,10 +475,10 @@ player.on('draw', function(context){
 player.tick = function(){
   if (this.health > 0){
     this.setHealth(-1);
+  }
 
-    if (this.health == 0){
-      player.kill();
-    }
+  if (this.health <= 0){
+    player.kill();
   }
 
   if (this.health < 4){
