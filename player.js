@@ -56,11 +56,15 @@ Player.prototype.input = function(keysdown){
 
   if ('A' in keysdown){
     this.direction = 'left';
-    this.velocity.x = (this.scrunched) ? -this.speed / 2 : -this.speed;
+    this.velocity.x = -this.speed;
     if (!this.jumping){
       this.jumping = true;
       if ('W' in keysdown){
         this.velocity.y = -15;        
+      } else if ('S' in keysdown){
+        this.scrunched = true;
+        this.velocity.x = -2
+        this.velocity.y = 0;
       } else {
         this.velocity.y = -5;
       }
@@ -69,11 +73,15 @@ Player.prototype.input = function(keysdown){
 
   if ('D' in keysdown){
     this.direction = 'right';
-    this.velocity.x = (this.scrunched) ? this.speed / 2 : this.speed;
+    this.velocity.x = this.speed;
     if (!this.jumping){
       this.jumping = true;
       if ('W' in keysdown){
         this.velocity.y = -15;        
+      } else if ('S' in keysdown){
+        this.scrunched = true;
+        this.velocity.x = 2
+        this.velocity.y = 0;
       } else {
         this.velocity.y = -5;
       }
