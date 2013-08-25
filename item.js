@@ -13,8 +13,8 @@ function Item(options){
   };
 
   this.size = {
-    x: 50,
-    y: 50
+    x: 20,
+    y: 20
   };
 
   this.color = options.color;

@@ -29,8 +29,7 @@ function Enemy(options){
   this.on('update', function(interval){
     self.move();
     this.velocity.y += 1.5;
-    self.checkBoundaries();
-    console.log(this.velocity)     
+    self.boundaries();
   });
 }
 
@@ -39,7 +38,7 @@ Enemy.prototype.move = function(){
   this.position.y += this.velocity.y * this.friction;
 };
 
-Enemy.prototype.checkBoundaries = function(){
+Enemy.prototype.boundaries = function(){
   if (this.position.x <= 0){
     this.velocity.x *= -1;
   }

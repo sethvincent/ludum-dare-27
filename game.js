@@ -6,6 +6,7 @@ var Goals = require('crtrdg-goal');
 var Inventory = require('./inventory');
 var Item = require('./item');
 var Player = require('./player');
+var Bullet = require('./bullet');
 var Camera = require('./camera');
 var Enemy = require('./enemy');
 var Map = require('./map');
@@ -99,6 +100,39 @@ keyboard.on('keyup', function(key){
     player.scrunched = false;
     player.velocity.y = -5;
   }
+});
+
+
+/*
+*
+* MOUSE
+*
+*/
+
+var mouse = new Mouse(game);
+
+mouse.on('click', function(location){
+  new Bullet({
+    position: { 
+      x: player.position.x + player.size.x / 2, 
+      y: player.position.y + player.size.y / 2
+    },
+
+    target: { 
+      x: location.x + camera.position.x, 
+      y: location.y + camera.position.y 
+    },
+    camera: camera
+  }).addTo(game)
+    .on('update', function(interval){
+      if (this.touches(enemy)){
+        this.remove();
+        enemy.remove();
+        gold.addTo(game);
+        gold.position.x = enemy.position.x;
+      }
+    }
+  );
 });
 
 
@@ -284,16 +318,16 @@ pauseMenu.on('start', function(){
 *
 */
 
-var pizza = new Item({
-  name: 'pizza',
-  color: '#000',
+var gold = new Item({
+  name: 'gold',
+  color: '#FFD700',
   position: {
     x: 200,
-    y: game.height - 50
+    y: game.height - 20
   }
 });
 
-pizza.on('draw', function(c){
+gold.on('draw', function(c){
   c.fillStyle = this.color;
   c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
 });
@@ -333,17 +367,16 @@ levelOne.on('start', function(){
     tick();
     tickStarted = true;
   }
-  pizza.addTo(game);
   enemy.addTo(game);
   player.visible = true;
   goals.set(levelOne.goal);
 });
 
 levelOne.on('update', function(){
-  if(player.touches(pizza)){
-    log.add('you found the pizza!');
+  if(player.touches(gold)){
+    log.add('you found the gold!');
     goals.met(levelOne.goal);
-    pizza.remove();
+    gold.remove();
     player.setHealth(25);
   }
 
