@@ -202,28 +202,35 @@ function Enemy(options){
   var self = this;
 
   this.position = { 
-    x: options.position.x, 
-    y: options.position.y 
+    x: options.position ? options.position.x : randomInteger(100, 2500), 
+    y: options.position ? options.position.y : 120 
   };
 
   this.size = {
-    x: options.size.x,
-    y: options.size.y
+    x: options.size ? options.size.x : 200,
+    y: options.size ? options.size.x : 200
   };
 
   this.velocity = {
-    x: options.velocity.x,
-    y: options.velocity.y
+    x: options.velocity ? options.velocity.x : 10,
+    y: options.velocity ? options.velocity.y : 10
   };
 
-  this.speed = options.speed;
-  this.friction = 0.8;
+  this.camera = options.camera;
+  this.health = options.health || 200;
+  this.speed = options.speed || 15;
+  this.friction = options.friction || 0.8;
   this.color = options.color;
   
   this.on('update', function(interval){
     self.move();
     this.velocity.y += 1.5;
     self.boundaries();
+  });
+
+  this.on('draw', function(c){
+    c.fillStyle = randomColor();
+    c.fillRect(this.position.x - this.camera.position.x, this.position.y - this.camera.position.y, this.size.x, this.size.y);  
   });
 }
 
@@ -306,6 +313,10 @@ game.on('pause', function(){});
 
 game.on('resume', function(){});
 
+game.on('tick', function(ticks){
+  game.currentScene.emit('tick', ticks);
+});
+
 var goals = new Goals(game);
 var levels = new Levels(game);
 
@@ -325,6 +336,7 @@ function tick(){
    setTimeout(function(){
     ticks++;
 
+    game.emit('tick', ticks);
     map.generate();
     player.tick();
 
@@ -392,14 +404,18 @@ mouse.on('click', function(location){
     camera: camera
   }).addTo(game)
     .on('update', function(interval){
-      if (this.touches(enemy)){
-        this.remove();
-        enemy.health -= 10;
-        if (enemy.health <= 0){
-          enemy.remove();
-          enemy.color = randomColor();
-          gold.addTo(game);
-          gold.position.x = enemy.position.x;
+      for (var i=0; i<monsters.length; i++){
+        if (this.touches(monsters[i])){
+          this.remove();
+          monsters[i].health -= 10;
+          if (monsters[i].health <= 0){
+            monsters[i].remove();
+            monsters[i].color = randomColor();
+            player.color = '#fff';
+            player.eyeColor = '#f00';
+            gold.addTo(game);
+            gold.position.x = monsters[i].position.x;
+          }
         }
       }
     }
@@ -482,9 +498,6 @@ player.on('draw', function(context){
 });
 
 player.tick = function(){
-  player.color = '#fff';
-  player.eyeColor = '#f00'
-
   if (this.health > 0){
     this.setHealth(-1);
   }
@@ -611,20 +624,7 @@ gold.on('draw', function(c){
   c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
 });
 
-var enemy = new Enemy({
-  color: randomColor(),
-  size: { x: 100, y: 200 },
-  position: { x: 200, y: 200 },
-  velocity: { x: 10, y: 10 }
-});
-
-enemy.health = 200;
-
-enemy.on('draw', function(c){
-  console.log('still drawing')
-  c.fillStyle = randomColor();
-  c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
-});
+var monsters = [];
 
 var levelOne = levels.create({
   name: 'level one',
@@ -648,9 +648,20 @@ levelOne.on('start', function(){
     tick();
     tickStarted = true;
   }
-  enemy.addTo(game);
+  //enemy.addTo(game);
   player.visible = true;
   goals.set(levelOne.goal);
+});
+
+levelOne.on('tick', function(ticks){
+  console.log(ticks)
+  if (ticks < 6){
+    monsters.push(new Enemy({
+      camera: camera,
+      color: '#fe123d'
+    }))
+    monsters[ticks-1].addTo(game);
+  }
 });
 
 levelOne.on('update', function(){
@@ -660,11 +671,13 @@ levelOne.on('update', function(){
     gold.remove();
     player.setCoins(25);
   }
-
-  if(player.touches(enemy)){
-    player.setHealth(-1);
-    player.color = '#f00'
-    player.eyeColor = '#fff'
+  for (var i=0; i<monsters.length; i++){
+    console.log(monsters[i]);
+    if(player.touches(monsters[i])){
+      player.setHealth(-1);
+      player.color = '#f00'
+      player.eyeColor = '#fff'
+    }
   }
 });
 

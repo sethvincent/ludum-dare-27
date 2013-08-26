@@ -8,28 +8,35 @@ function Enemy(options){
   var self = this;
 
   this.position = { 
-    x: options.position.x, 
-    y: options.position.y 
+    x: options.position ? options.position.x : randomInteger(100, 2500), 
+    y: options.position ? options.position.y : 120 
   };
 
   this.size = {
-    x: options.size.x,
-    y: options.size.y
+    x: options.size ? options.size.x : 200,
+    y: options.size ? options.size.x : 200
   };
 
   this.velocity = {
-    x: options.velocity.x,
-    y: options.velocity.y
+    x: options.velocity ? options.velocity.x : 10,
+    y: options.velocity ? options.velocity.y : 10
   };
 
-  this.speed = options.speed;
-  this.friction = 0.8;
+  this.camera = options.camera;
+  this.health = options.health || 200;
+  this.speed = options.speed || 15;
+  this.friction = options.friction || 0.8;
   this.color = options.color;
   
   this.on('update', function(interval){
     self.move();
     this.velocity.y += 1.5;
     self.boundaries();
+  });
+
+  this.on('draw', function(c){
+    c.fillStyle = randomColor();
+    c.fillRect(this.position.x - this.camera.position.x, this.position.y - this.camera.position.y, this.size.x, this.size.y);  
   });
 }
 
