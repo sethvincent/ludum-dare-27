@@ -261,6 +261,7 @@ var Keyboard = require('crtrdg-keyboard');
 var Mouse = require('crtrdg-mouse');
 var Levels = require('crtrdg-scene');
 var Goals = require('crtrdg-goal');
+var randomColor = require('random-color');
 var Inventory = require('./inventory');
 var Item = require('./item');
 var Player = require('./player');
@@ -317,11 +318,13 @@ var levels = new Levels(game);
 * that related to the theme.
 *
 */
+
+var ticks = 0;
 var tickStarted = false;
 function tick(){
    setTimeout(function(){
+    ticks++;
 
-    console.log('10 seconds have passed');
     map.generate();
     player.tick();
 
@@ -391,9 +394,13 @@ mouse.on('click', function(location){
     .on('update', function(interval){
       if (this.touches(enemy)){
         this.remove();
-        enemy.remove();
-        gold.addTo(game);
-        gold.position.x = enemy.position.x;
+        enemy.health -= 10;
+        if (enemy.health <= 0){
+          enemy.remove();
+          enemy.color = randomColor();
+          gold.addTo(game);
+          gold.position.x = enemy.position.x;
+        }
       }
     }
   );
@@ -418,7 +425,8 @@ var player = new Player({
   color: '#fff',
   speed: 11,
   friction: 0.9,
-  health: 100
+  health: 100,
+  camera: camera
 });
 
 player.addTo(game);
@@ -481,8 +489,8 @@ player.tick = function(){
     player.kill();
   }
 
-  if (this.health < 4){
-    log.add('hey, your health is getting kinda low.')
+  if (this.health < 4 && this.health > 0){
+    log.add('oh, gosh. your health is getting kinda low.')
   }
 };
 
@@ -600,15 +608,17 @@ gold.on('draw', function(c){
 });
 
 var enemy = new Enemy({
-  color: 'pink',
+  color: randomColor(),
   size: { x: 100, y: 200 },
   position: { x: 200, y: 200 },
   velocity: { x: 10, y: 10 }
 });
 
+enemy.health = 200;
+
 enemy.on('draw', function(c){
   console.log('still drawing')
-  c.fillStyle = this.color;
+  c.fillStyle = randomColor();
   c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
 });
 
@@ -707,7 +717,7 @@ var log = new Log({
   width: '300px',
   appendTo: 'header .container'
 });
-},{"./bullet":1,"./camera":2,"./enemy":3,"./inventory":5,"./item":6,"./log":7,"./map":8,"./player":23,"./text":24,"crtrdg-gameloop":14,"crtrdg-goal":16,"crtrdg-keyboard":17,"crtrdg-mouse":19,"crtrdg-scene":20}],5:[function(require,module,exports){
+},{"./bullet":1,"./camera":2,"./enemy":3,"./inventory":5,"./item":6,"./log":7,"./map":8,"./player":23,"./text":24,"crtrdg-gameloop":14,"crtrdg-goal":16,"crtrdg-keyboard":17,"crtrdg-mouse":19,"crtrdg-scene":20,"random-color":22}],5:[function(require,module,exports){
 var inherits = require('inherits');
 
 module.exports = Inventory;
@@ -4986,6 +4996,8 @@ function Player(options){
     x: 0,
     y: 0
   };
+
+  this.camera = options.camera;
 
   this.health = options.health;
   this.coins = 5;
