@@ -481,6 +481,8 @@ player.on('draw', function(context){
 });
 
 player.tick = function(){
+  player.color = '#fff';
+  
   if (this.health > 0){
     this.setHealth(-1);
   }
@@ -654,11 +656,12 @@ levelOne.on('update', function(){
     log.add('you found the gold!');
     goals.met(levelOne.goal);
     gold.remove();
-    player.setHealth(25);
+    player.setCoins(25);
   }
 
   if(player.touches(enemy)){
     player.setHealth(-1);
+    player.color = '#f00'
   }
 });
 
