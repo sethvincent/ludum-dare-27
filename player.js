@@ -20,6 +20,8 @@ function Player(options){
     y: 0
   };
 
+  this.camera = options.camera;
+
   this.health = options.health;
   this.coins = 5;
   this.strength = 5;
