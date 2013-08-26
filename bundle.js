@@ -423,6 +423,7 @@ var player = new Player({
     y: game.height / 2 - 6,
   },
   color: '#fff',
+  eyeColor: '#cececa',
   speed: 11,
   friction: 0.9,
   health: 100,
@@ -453,7 +454,7 @@ player.on('draw', function(context){
       context.fillRect(this.position.x - camera.position.x-10, this.position.y - camera.position.y+30, this.size.x+20, this.size.y-30);
 
       /* the eye */
-      context.fillStyle = '#ccc';
+      context.fillStyle = this.eyeColor;
 
       /* direction of eye */
       if (this.direction === 'right') {
@@ -466,7 +467,7 @@ player.on('draw', function(context){
       context.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);
     
       /* the eye */
-      context.fillStyle = '#ccc';
+      context.fillStyle = this.eyeColor;
 
       /* direction of eye */
       if (this.direction === 'right') {
@@ -482,7 +483,8 @@ player.on('draw', function(context){
 
 player.tick = function(){
   player.color = '#fff';
-  
+  player.eyeColor = '#f00'
+
   if (this.health > 0){
     this.setHealth(-1);
   }
@@ -662,6 +664,7 @@ levelOne.on('update', function(){
   if(player.touches(enemy)){
     player.setHealth(-1);
     player.color = '#f00'
+    player.eyeColor = '#fff'
   }
 });
 
@@ -5011,6 +5014,7 @@ function Player(options){
   this.friction = options.friction;
   this.speed = options.speed;
   this.color = options.color;
+  this.eyeColor = options.eyeColor;
 }
 
 Player.prototype.move = function(){

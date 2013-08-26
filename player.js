@@ -31,6 +31,7 @@ function Player(options){
   this.friction = options.friction;
   this.speed = options.speed;
   this.color = options.color;
+  this.eyeColor = options.eyeColor;
 }
 
 Player.prototype.move = function(){
