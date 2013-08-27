@@ -18,4 +18,10 @@ function Item(options){
   };
 
   this.color = options.color;
+  this.camera = options.camera;
+
+  this.on('draw', function(c){
+    c.fillStyle = randomColor();
+    c.fillRect(this.position.x - this.camera.position.x, this.position.y - this.camera.position.y, this.size.x, this.size.y);  
+  });
 }

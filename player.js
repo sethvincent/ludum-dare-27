@@ -23,7 +23,7 @@ function Player(options){
   this.camera = options.camera;
 
   this.health = options.health;
-  this.coins = 5;
+  this.coins = 0;
   this.strength = 5;
   this.direction = 'right';
   this.scrunched = false;

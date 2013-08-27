@@ -294,6 +294,11 @@ game.over = function(){
   log.add('hey, um. i think the game is over.')
 };
 
+game.win = function(){
+  levels.set(gameWin);
+  log.add('you got 100 gold oh shit you win!')
+}
+
 
 /*
 *
@@ -316,6 +321,13 @@ game.on('resume', function(){});
 game.on('tick', function(ticks){
   game.currentScene.emit('tick', ticks);
 });
+
+
+/*
+*
+* GOALS & LEVELS
+*
+*/
 
 var goals = new Goals(game);
 var levels = new Levels(game);
@@ -413,8 +425,16 @@ mouse.on('click', function(location){
             monsters[i].color = randomColor();
             player.color = '#fff';
             player.eyeColor = '#f00';
-            gold.addTo(game);
-            gold.position.x = monsters[i].position.x;
+            gold.push(new Item({
+              name: 'gold',
+              color: '#FFD700',
+              camera: camera,
+              position: {
+                x: monsters[i].position.x,
+                y: game.height - 20
+              }
+            }));
+            gold[i].addTo(game);
           }
         }
       }
@@ -443,7 +463,8 @@ var player = new Player({
   speed: 11,
   friction: 0.9,
   health: 100,
-  camera: camera
+  camera: camera,
+  coins: 0
 });
 
 player.addTo(game);
@@ -452,6 +473,11 @@ player.on('update', function(interval){
   if (player.health <= 0){
     player.kill();
   }
+
+  if (player.coins >= 100){
+    game.win();
+  }
+
   this.input(keyboard.keysDown);
   this.move();
   this.velocity.x *= this.friction;
@@ -590,6 +616,23 @@ gameOver.on('start', function(){
 
 /*
 *
+* GAME WIN
+*
+*/
+
+var gameWin = levels.create({
+  name: 'game win',
+  backgroundColor: '#000'
+});
+
+gameOver.on('start', function(){
+  title.update('YOU WIN');
+  game.pause();
+});
+
+
+/*
+*
 * PAUSE MENU
 *
 */
@@ -610,20 +653,7 @@ pauseMenu.on('start', function(){
 *
 */
 
-var gold = new Item({
-  name: 'gold',
-  color: '#FFD700',
-  position: {
-    x: 200,
-    y: game.height - 20
-  }
-});
-
-gold.on('draw', function(c){
-  c.fillStyle = this.color;
-  c.fillRect(this.position.x - camera.position.x, this.position.y - camera.position.y, this.size.x, this.size.y);  
-});
-
+var gold = [];
 var monsters = [];
 
 var levelOne = levels.create({
@@ -665,14 +695,15 @@ levelOne.on('tick', function(ticks){
 });
 
 levelOne.on('update', function(){
-  if(player.touches(gold)){
-    log.add('you found the gold!');
-    goals.met(levelOne.goal);
-    gold.remove();
-    player.setCoins(25);
+  for (var i=0; i<gold.length; i++){
+    if(player.touches(gold[i])){
+      log.add('you found gold!');
+      gold[i].remove();
+      player.setCoins(25);
+    }
   }
+
   for (var i=0; i<monsters.length; i++){
-    console.log(monsters[i]);
     if(player.touches(monsters[i])){
       player.setHealth(-1);
       player.color = '#f00'
@@ -681,12 +712,9 @@ levelOne.on('update', function(){
   }
 });
 
-levelOne.on('draw', function(context){
-});
+levelOne.on('draw', function(context){});
 
-levelOne.on('end', function(){
-
-});
+levelOne.on('end', function(){});
 
 
 /*
@@ -718,13 +746,15 @@ var health = new Text({
 
 var coins = new Text({ 
   el: '#coins', 
-  html: player.coins
+  html: '0'
 });
 
+/*
 var strength = new Text({
   el: '#strength',
   html: player.strength
-})
+});
+*/
 
 var title = new Text({
   el: '#title',
@@ -874,6 +904,12 @@ function Item(options){
   };
 
   this.color = options.color;
+  this.camera = options.camera;
+
+  this.on('draw', function(c){
+    c.fillStyle = randomColor();
+    c.fillRect(this.position.x - this.camera.position.x, this.position.y - this.camera.position.y, this.size.x, this.size.y);  
+  });
 }
 },{"crtrdg-entity":11,"inherits":21}],7:[function(require,module,exports){
 module.exports = Log;
@@ -5019,7 +5055,7 @@ function Player(options){
   this.camera = options.camera;
 
   this.health = options.health;
-  this.coins = 5;
+  this.coins = 0;
   this.strength = 5;
   this.direction = 'right';
   this.scrunched = false;
