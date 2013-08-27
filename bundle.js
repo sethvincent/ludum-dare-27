@@ -625,7 +625,7 @@ var gameWin = levels.create({
   backgroundColor: '#000'
 });
 
-gameOver.on('start', function(){
+gameWin.on('start', function(){
   title.update('YOU WIN');
   game.pause();
 });
